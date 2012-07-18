@@ -423,6 +423,18 @@ static bool path_connected(const struct path *path)
  * to restart the path walk from the beginning in ref-walk mode.
  */
 
+static inline void lock_rcu_walk(void)
+{
+	br_read_lock(&vfsmount_lock);
+	rcu_read_lock();
+}
+
+static inline void unlock_rcu_walk(void)
+{
+	rcu_read_unlock();
+	br_read_unlock(&vfsmount_lock);
+}
+
 /**
  * unlazy_walk - try to switch to ref-walk mode.
  * @nd: nameidata pathwalk data
@@ -476,8 +488,7 @@ static int unlazy_walk(struct nameidata *nd, struct dentry *dentry)
 	}
 	mntget(nd->path.mnt);
 
-	rcu_read_unlock();
-	br_read_unlock(&vfsmount_lock);
+	unlock_rcu_walk();
 	nd->flags &= ~LOOKUP_RCU;
 	return 0;
 
@@ -518,15 +529,13 @@ static int complete_walk(struct nameidata *nd)
 		spin_lock(&dentry->d_lock);
 		if (unlikely(!__d_rcu_to_refcount(dentry, nd->seq))) {
 			spin_unlock(&dentry->d_lock);
-			rcu_read_unlock();
-			br_read_unlock(&vfsmount_lock);
+			unlock_rcu_walk();
 			return -ECHILD;
 		}
 		BUG_ON(nd->inode != dentry->d_inode);
 		spin_unlock(&dentry->d_lock);
 		mntget(nd->path.mnt);
-		rcu_read_unlock();
-		br_read_unlock(&vfsmount_lock);
+		unlock_rcu_walk();
 	}
 
 	if (likely(!(nd->flags & LOOKUP_JUMPED)))
@@ -983,8 +992,7 @@ failed:
 	nd->flags &= ~LOOKUP_RCU;
 	if (!(nd->flags & LOOKUP_ROOT))
 		nd->root.mnt = NULL;
-	rcu_read_unlock();
-	br_read_unlock(&vfsmount_lock);
+	unlock_rcu_walk();
 	return -ECHILD;
 }
 
@@ -1327,8 +1335,7 @@ static void terminate_walk(struct nameidata *nd)
 		nd->flags &= ~LOOKUP_RCU;
 		if (!(nd->flags & LOOKUP_ROOT))
 			nd->root.mnt = NULL;
-		rcu_read_unlock();
-		br_read_unlock(&vfsmount_lock);
+		unlock_rcu_walk();
 	}
 }
 
@@ -1696,8 +1703,7 @@ static int path_init(int dfd, const char *name, unsigned int flags,
 		nd->path = nd->root;
 		nd->inode = inode;
 		if (flags & LOOKUP_RCU) {
-			br_read_lock(&vfsmount_lock);
-			rcu_read_lock();
+			lock_rcu_walk();
 			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
 		} else {
 			path_get(&nd->path);
@@ -1709,8 +1715,7 @@ static int path_init(int dfd, const char *name, unsigned int flags,
 
 	if (*name=='/') {
 		if (flags & LOOKUP_RCU) {
-			br_read_lock(&vfsmount_lock);
-			rcu_read_lock();
+			lock_rcu_walk();
 			nd->seq = set_root_rcu(nd);
 		} else {
 			set_root(nd);
@@ -1722,8 +1727,7 @@ static int path_init(int dfd, const char *name, unsigned int flags,
 			struct fs_struct *fs = current->fs;
 			unsigned seq;
 
-			br_read_lock(&vfsmount_lock);
-			rcu_read_lock();
+			lock_rcu_walk();
 
 			do {
 				seq = read_seqcount_begin(&fs->seq);
@@ -1760,8 +1764,7 @@ static int path_init(int dfd, const char *name, unsigned int flags,
 			if (fput_needed)
 				*fp = file;
 			nd->seq = __read_seqcount_begin(&nd->path.dentry->d_seq);
-			br_read_lock(&vfsmount_lock);
-			rcu_read_lock();
+			lock_rcu_walk();
 		} else {
 			path_get(&file->f_path);
 			fput_light(file, fput_needed);
