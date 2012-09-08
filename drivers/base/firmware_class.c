@@ -99,7 +99,9 @@ struct firmware_cache {
 	/* firmware_buf instance will be added into the below list */
 	spinlock_t lock;
 	struct list_head head;
+	int state;
 
+#ifdef CONFIG_PM_SLEEP
 	/*
 	 * Names of firmware images which have been cached successfully
 	 * will be added into the below list so that device uncache
@@ -109,13 +111,12 @@ struct firmware_cache {
 	spinlock_t name_lock;
 	struct list_head fw_names;
 
-	int state;
-
 	wait_queue_head_t wait_queue;
 	int cnt;
 	struct delayed_work work;
 
 	struct notifier_block   pm_notify;
+#endif
 };
 
 struct firmware_buf {
@@ -625,6 +626,7 @@ static void fw_set_page_data(struct firmware_buf *buf, struct firmware *fw)
 		 (unsigned int)buf->size);
 }
 
+#ifdef CONFIG_PM_SLEEP
 static void fw_name_devm_release(struct device *dev, void *res)
 {
 	struct fw_name_devm *fwn = res;
@@ -673,6 +675,12 @@ static int fw_add_devm_name(struct device *dev, const char *name)
 
 	return 0;
 }
+#else
+static int fw_add_devm_name(struct device *dev, const char *name)
+{
+	return 0;
+}
+#endif
 
 static void _request_firmware_cleanup(const struct firmware **firmware_p)
 {
@@ -1049,6 +1057,7 @@ int uncache_firmware(const char *fw_name)
 	return -EINVAL;
 }
 
+#ifdef CONFIG_PM_SLEEP
 static struct fw_cache_entry *alloc_fw_cache_entry(const char *name)
 {
 	struct fw_cache_entry *fce;
@@ -1261,7 +1270,6 @@ static void device_uncache_fw_images_delay(unsigned long delay)
 			msecs_to_jiffies(delay));
 }
 
-#ifdef CONFIG_PM
 static int fw_pm_notify(struct notifier_block *notify_block,
 			unsigned long mode, void *unused)
 {
@@ -1288,13 +1296,6 @@ static int fw_pm_notify(struct notifier_block *notify_block,
 
 	return 0;
 }
-#else
-static int fw_pm_notify(struct notifier_block *notify_block,
-			unsigned long mode, void *unused)
-{
-	return 0;
-}
-#endif
 
 /* stop caching firmware once syscore_suspend is reached */
 static int fw_suspend(void)
@@ -1306,16 +1307,23 @@ static int fw_suspend(void)
 static struct syscore_ops fw_syscore_ops = {
 	.suspend = fw_suspend,
 };
+#else
+static int fw_cache_piggyback_on_request(const char *name)
+{
+	return 0;
+}
+#endif
 
 static void __init fw_cache_init(void)
 {
 	spin_lock_init(&fw_cache.lock);
 	INIT_LIST_HEAD(&fw_cache.head);
+	fw_cache.state = FW_LOADER_NO_CACHE;
 
+#ifdef CONFIG_PM_SLEEP
 	spin_lock_init(&fw_cache.name_lock);
 	INIT_LIST_HEAD(&fw_cache.fw_names);
 	fw_cache.cnt = 0;
-	fw_cache.state = FW_LOADER_NO_CACHE;
 
 	init_waitqueue_head(&fw_cache.wait_queue);
 	INIT_DELAYED_WORK(&fw_cache.work,
@@ -1325,6 +1333,7 @@ static void __init fw_cache_init(void)
 	register_pm_notifier(&fw_cache.pm_notify);
 
 	register_syscore_ops(&fw_syscore_ops);
+#endif
 }
 
 static int __init firmware_class_init(void)
@@ -1335,8 +1344,10 @@ static int __init firmware_class_init(void)
 
 static void __exit firmware_class_exit(void)
 {
+#ifdef CONFIG_PM_SLEEP
 	unregister_syscore_ops(&fw_syscore_ops);
 	unregister_pm_notifier(&fw_cache.pm_notify);
+#endif
 	class_unregister(&firmware_class);
 }
 
