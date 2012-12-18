@@ -77,6 +77,7 @@ u32 prandom_u32(void)
 	return r;
 }
 EXPORT_SYMBOL(prandom_u32);
+<<<<<<< HEAD
 
 /*
  *	prandom_bytes_state - get the requested number of pseudo-random bytes
@@ -128,6 +129,10 @@ void prandom_bytes(void *buf, int bytes)
 EXPORT_SYMBOL(prandom_bytes);
 
 /**
+=======
+
+/**
+>>>>>>> 121bbedf1d9... random32: rename random32 to prandom
  *	prandom_seed - add entropy to pseudo random number generator
  *	@seed: seed value
  *
@@ -175,27 +180,6 @@ static int __init prandom_init(void)
 	return 0;
 }
 core_initcall(prandom_init);
-
-static void __prandom_timer(unsigned long dontcare);
-static DEFINE_TIMER(seed_timer, __prandom_timer, 0, 0);
-
-static void __prandom_timer(unsigned long dontcare)
-{
-	u32 entropy;
-
-	get_random_bytes(&entropy, sizeof(entropy));
-	prandom_seed(entropy);
-	/* reseed every ~60 seconds, in [40 .. 80) interval with slack */
-	seed_timer.expires = jiffies + (40 * HZ + (prandom_u32() % (40 * HZ)));
-	add_timer(&seed_timer);
-}
-
-static void prandom_start_seed_timer(void)
-{
-	set_timer_slack(&seed_timer, HZ);
-	seed_timer.expires = jiffies + 40 * HZ;
-	add_timer(&seed_timer);
-}
 
 static void __prandom_timer(unsigned long dontcare);
 static DEFINE_TIMER(seed_timer, __prandom_timer, 0, 0);
