@@ -75,6 +75,13 @@ u32 prandom_u32_state(struct rnd_state *);
 void prandom_bytes_state(struct rnd_state *state, void *buf, int nbytes);
 
 /*
+ * These macros are preserved for backward compatibility and should be
+ * removed as soon as a transition is finished.
+ */
+#define random32() prandom_u32()
+#define srandom32(seed) prandom_seed(seed)
+
+/*
  * Handle minimum values for seeds
  */
 static inline u32 __seed(u32 x, u32 m)
