@@ -203,6 +203,17 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 			goto Platform_wake;
 	}
 
+	/*
+	 * PM_SUSPEND_FREEZE equals
+	 * frozen processes + suspended devices + idle processors.
+	 * Thus we should invoke freeze_enter() soon after
+	 * all the devices are suspended.
+	 */
+	if (state == PM_SUSPEND_FREEZE) {
+		freeze_enter();
+		goto Platform_wake;
+	}
+
 	if (suspend_test(TEST_PLATFORM))
 		goto Platform_wake;
 
