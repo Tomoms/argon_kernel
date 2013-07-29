@@ -3026,7 +3026,6 @@ static void synaptics_rmi4_sensor_report(struct synaptics_rmi4_data *rmi4_data)
 static irqreturn_t synaptics_rmi4_irq(int irq, void *data)
 {
 	struct synaptics_rmi4_data *rmi4_data = data;
-	ktime_t timestamp = ktime_get();
 
 	if (!rmi4_data->touch_stopped)
 		synaptics_rmi4_sensor_report(rmi4_data);
