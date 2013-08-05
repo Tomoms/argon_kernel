@@ -154,6 +154,7 @@ struct fw_desc {
 	struct device *device;
 	bool uevent;
 	bool nowait;
+	bool nocache;
 	struct module *module;
 	void *context;
 	void (*cont)(const struct firmware *fw, void *context);
@@ -971,6 +972,14 @@ _request_firmware_prepare(struct firmware **firmware_p, struct fw_desc *desc)
 		return 0; /* assigned */
 	}
 
+	if (desc->nocache) {
+		buf = __allocate_fw_buf(desc->name, NULL);
+		if (!buf)
+			return -ENOMEM;
+		firmware->priv = buf;
+		return 1;
+	}
+
 	ret = fw_lookup_and_allocate_buf(desc->name, &fw_cache, &buf);
 
 	/*
@@ -992,7 +1001,8 @@ _request_firmware_prepare(struct firmware **firmware_p, struct fw_desc *desc)
 	return 1; /* need to load */
 }
 
-static int assign_firmware_buf(struct firmware *fw, struct device *device)
+static int assign_firmware_buf(struct firmware *fw, struct device *device,
+			       bool nocache)
 {
 	struct firmware_buf *buf = fw->priv;
 
@@ -1009,14 +1019,14 @@ static int assign_firmware_buf(struct firmware *fw, struct device *device)
 	 * device may has been deleted already, but the problem
 	 * should be fixed in devres or driver core.
 	 */
-	if (device)
+	if (device && !nocache)
 		fw_add_devm_name(device, buf->fw_id);
 
 	/*
 	 * After caching firmware image is started, let it piggyback
 	 * on request firmware.
 	 */
-	if (buf->fwc->state == FW_LOADER_START_CACHE) {
+	if (!nocache && (buf->fwc->state == FW_LOADER_START_CACHE)) {
 		if (fw_cache_piggyback_on_request(buf->fw_id))
 			kref_get(&buf->ref);
 	}
@@ -1063,7 +1073,7 @@ static int _request_firmware(struct fw_desc *desc)
 	if (!fw_get_filesystem_firmware(desc->device, fw->priv))
 		ret = fw_load_from_user_helper(fw, desc, timeout);
 	if (!ret)
-		ret = assign_firmware_buf(fw, desc->device);
+		ret = assign_firmware_buf(fw, desc->device, desc->nocache);
 
 	usermodehelper_read_unlock();
 
@@ -1108,6 +1118,7 @@ request_firmware(const struct firmware **firmware_p, const char *name,
 	desc.device = device;
 	desc.uevent = true;
 	desc.nowait = false;
+	desc.nocache = false;
 	return _request_firmware(&desc);
 }
 
@@ -1144,7 +1155,8 @@ int
 _request_firmware_nowait(
 	struct module *module, bool uevent,
 	const char *name, struct device *device, gfp_t gfp, void *context,
-	void (*cont)(const struct firmware *fw, void *context))
+	void (*cont)(const struct firmware *fw, void *context),
+	bool nocache)
 {
 	struct fw_desc *desc;
 
@@ -1158,6 +1170,7 @@ _request_firmware_nowait(
 	desc->context = context;
 	desc->cont = cont;
 	desc->uevent = uevent;
+	desc->nocache = nocache;
 
 	if (!try_module_get(module)) {
 		kfree(desc);
