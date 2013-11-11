@@ -231,6 +231,18 @@ static void __prandom_reseed(bool late)
 		/* mix it in */
 		prandom_u32_state(state);
 	}
+out:
+	spin_unlock_irqrestore(&lock, flags);
+}
+
+void prandom_reseed_late(void)
+{
+	__prandom_reseed(true);
+}
+
+static int __init prandom_reseed(void)
+{
+	__prandom_reseed(false);
 	prandom_start_seed_timer();
 out:
 	spin_unlock_irqrestore(&lock, flags);
