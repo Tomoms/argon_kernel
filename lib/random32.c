@@ -223,7 +223,7 @@ static void __prandom_timer(unsigned long dontcare)
 	add_timer(&seed_timer);
 }
 
-static void prandom_start_seed_timer(void)
+static void __init __prandom_start_seed_timer(void)
 {
 	set_timer_slack(&seed_timer, HZ);
 	seed_timer.expires = jiffies + 40 * HZ;
@@ -272,18 +272,6 @@ static int __init prandom_reseed(void)
 {
 	__prandom_reseed(false);
 	prandom_start_seed_timer();
-out:
-	spin_unlock_irqrestore(&lock, flags);
-}
-
-void prandom_reseed_late(void)
-{
-	__prandom_reseed(true);
-}
-
-static int __init prandom_reseed(void)
-{
-	__prandom_reseed(false);
 	return 0;
 }
 late_initcall(prandom_reseed);
