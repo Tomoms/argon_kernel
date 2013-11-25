@@ -8,6 +8,12 @@ menu "File systems"
 config DCACHE_WORD_ACCESS
        bool
 
+config ASYNC_FSYNC
+	bool "Asynchronous Filesystem Sync"
+	default n
+	help
+	  HTC's asynchronous filesystem sync utility.
+
 if BLOCK
 
 source "fs/ext2/Kconfig"
