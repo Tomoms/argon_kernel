@@ -3246,6 +3246,7 @@ static void __init dcache_init_early(void)
 					HASH_EARLY,
 					&d_hash_shift,
 					&d_hash_mask,
+					0,
 					0);
 
 	for (loop = 0; loop < (1U << d_hash_shift); loop++)
@@ -3276,6 +3277,7 @@ static void __init dcache_init(void)
 					0,
 					&d_hash_shift,
 					&d_hash_mask,
+					0,
 					0);
 
 	for (loop = 0; loop < (1U << d_hash_shift); loop++)
