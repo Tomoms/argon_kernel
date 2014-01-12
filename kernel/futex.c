@@ -68,6 +68,8 @@
 
 #include "rtmutex_common.h"
 
+int __read_mostly futex_cmpxchg_enabled;
+
 /*
  * Basic futex operation and ordering guarantees:
  *
@@ -153,8 +155,6 @@
  * the guarantee that we cannot both miss the futex variable change and the
  * enqueue.
  */
-
-int __read_mostly futex_cmpxchg_enabled;
 
 /*
  * Futex flags used to encode options to functions and preserve them across
@@ -3092,6 +3092,7 @@ SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
 static int __init futex_init(void)
 {
 	u32 curval;
+	unsigned int futex_shift;
 	unsigned long i;
 
 #if CONFIG_BASE_SMALL
@@ -3103,8 +3104,9 @@ static int __init futex_init(void)
 	futex_queues = alloc_large_system_hash("futex", sizeof(*futex_queues),
 					       futex_hashsize, 0,
 					       futex_hashsize < 256 ? HASH_SMALL : 0,
-					       NULL, NULL, futex_hashsize);
-
+					       &futex_shift, NULL,
+					       futex_hashsize, futex_hashsize);
+	futex_hashsize = 1UL << futex_shift;
 	/*
 	 * This will fail and we want it. Some arch implementations do
 	 * runtime detection of the futex_atomic_cmpxchg_inatomic()
