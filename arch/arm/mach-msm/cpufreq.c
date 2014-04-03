@@ -31,7 +31,6 @@
 #include <linux/err.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
-#include <trace/events/power.h>
 
 static DEFINE_MUTEX(l2bw_lock);
 
@@ -89,15 +88,11 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq,
 
 	cpufreq_notify_transition(policy, &freqs, CPUFREQ_PRECHANGE);
 
-	trace_cpu_frequency_switch_start(freqs.old, freqs.new, policy->cpu);
-
 	rate = new_freq * 1000;
 	rate = clk_round_rate(cpu_clk[policy->cpu], rate);
 	ret = clk_set_rate(cpu_clk[policy->cpu], rate);
-	if (!ret) {
+	if (!ret)
 		cpufreq_notify_transition(policy, &freqs, CPUFREQ_POSTCHANGE);
-		trace_cpu_frequency_switch_end(policy->cpu);
-	}
 
 	/* Restore priority after clock ramp-up */
 	if (freqs.new > freqs.old && saved_sched_policy >= 0) {
