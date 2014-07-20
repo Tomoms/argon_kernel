@@ -663,15 +663,25 @@ retry:
 	if (cmpxchg(&r->entropy_count, orig, entropy_count) != orig)
 		goto retry;
 
+	r->entropy_total += nbits;
+	if (!r->initialized && r->entropy_total > 128) {
+		r->initialized = 1;
+		r->entropy_total = 0;
+		if (r == &nonblocking_pool) {
+			prandom_reseed_late();
+			pr_notice("random: %s pool is initialized\n", r->name);
+		}
+	}
+
+	trace_credit_entropy_bits(r->name, nbits,
+				  entropy_count >> ENTROPY_SHIFT,
+				  r->entropy_total, _RET_IP_);
+
 	if (!r->initialized && nbits > 0) {
 		r->entropy_total += nbits;
 		if (r->entropy_total > 128)
 			r->initialized = 1;
 	}
-
-    trace_credit_entropy_bits(r->name, nbits,
-				  entropy_count >> ENTROPY_SHIFT,
-				  r->entropy_total, _RET_IP_);
 
 	if (r == &input_pool) {
 		int entropy_bits = entropy_count >> ENTROPY_SHIFT;
