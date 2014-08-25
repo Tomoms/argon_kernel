@@ -61,6 +61,8 @@
 
 #define AUTOSUSPEND_TIMEOUT_MS	200
 
+#define AUTOSUSPEND_TIMEOUT_MS	200
+
 struct mdss_data_type *mdss_res;
 
 static int mdss_fb_mem_get_iommu_domain(void)
