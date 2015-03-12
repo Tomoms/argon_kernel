@@ -5264,7 +5264,7 @@ static int __qce_init_clk(struct qce_device *pce_dev)
 	if (!IS_ERR(ce_core_src_clk)) {
 		pce_dev->ce_core_src_clk = ce_core_src_clk;
 
-		/* Set the core src clk @171Mhz */
+        /* Set the core src clk @171Mhz */
 		rc = clk_set_rate(pce_dev->ce_core_src_clk, 171430000);
 		if (rc) {
 			clk_put(pce_dev->ce_core_src_clk);
