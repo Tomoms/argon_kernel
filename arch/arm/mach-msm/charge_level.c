@@ -94,12 +94,10 @@ static ssize_t charge_info_show(struct kobject *kobj, struct kobj_attribute *att
 
 	// stock charge logic
 	if (charge_level == 0)
-		return sprintf(buf, "%s / %d mA (%d) SL", 
-				charge_info_text, charge_info_level_cur, charge_info_level_req);
+		return sprintf(buf, "%d", charge_info_level_cur);
 
 	// non-stock charge logic
-		return sprintf(buf, "%s / %d mA (%d)", 
-			charge_info_text, charge_info_level_cur, charge_info_level_req);
+		return sprintf(buf, "%d", charge_info_level_cur);
 }
 
 
