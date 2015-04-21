@@ -608,7 +608,6 @@ static void credit_entropy_bits(struct entropy_store *r, int nbits)
 	if (!nbits)
 		return;
 
-	DEBUG_ENT("added %d entropy credits to %s\n", nbits, r->name);
 retry:
 	entropy_count = orig = ACCESS_ONCE(r->entropy_count);
 	if (nfrac < 0) {
@@ -1395,12 +1394,11 @@ urandom_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 	int ret;
 
 #ifdef CONFIG_CRYPTO_FIPS
-	if (get_cc_mode_state())
+	if (get_cc_mode_state()) {
 		return random_read(file, buf, nbytes, ppos);
-	else {
+	} else
 #endif
-	int ret;
-
+	{
 	if (unlikely(nonblocking_pool.initialized == 0))
 		printk_once(KERN_NOTICE "random: %s urandom read "
 			    "with %d bits of entropy available\n",
@@ -1762,3 +1760,23 @@ randomize_range(unsigned long start, unsigned long end, unsigned long len)
 		return 0;
 	return PAGE_ALIGN(get_random_int() % range + start);
 }
+
+/* Interface for in-kernel drivers of true hardware RNGs.
+ * Those devices may produce endless random bits and will be throttled
+ * when our pool is full.
+ */
+void add_hwgenerator_randomness(const char *buffer, size_t count,
+        size_t entropy)
+{
+    struct entropy_store *poolp = &input_pool;
+
+    /* Suspend writing if we're above the trickle threshold.
+     * We'll be woken up again once below random_write_wakeup_thresh,
+     * or when the calling thread is about to terminate.
+     */
+    wait_event_interruptible(random_write_wait, kthread_should_stop() ||
+            ENTROPY_BITS(poolp) <= random_write_wakeup_bits);
+    mix_pool_bytes(poolp, buffer, count, NULL);
+    credit_entropy_bits(poolp, entropy);
+}
+EXPORT_SYMBOL_GPL(add_hwgenerator_randomness);
