@@ -174,6 +174,7 @@ enum dsi_pm_type {
 #define DSI_CMD_TERM    BIT(0)
 
 extern struct device dsi_dev;
+extern int mdss_dsi_clk_on;
 extern u32 dsi_irq;
 extern struct mdss_dsi_ctrl_pdata *ctrl_list[];
 
@@ -296,6 +297,7 @@ struct mdss_dsi_ctrl_pdata {
 #ifdef CONFIG_MACH_OPPO
 	int lcd_5v_en_gpio;
 #endif
+	int mdss_dsi_clk_on;
 	int rst_gpio;
 	int disp_en_gpio;
 #ifdef CONFIG_MACH_N3
