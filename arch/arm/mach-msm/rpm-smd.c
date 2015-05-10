@@ -898,10 +898,10 @@ static void data_fn_tasklet(unsigned long data)
 {
 	uint32_t msg_id;
 	int errno;
+	unsigned long flags;
 	char buf[MAX_ERR_BUFFER_SIZE] = {0};
 
-
-	spin_lock(&msm_rpm_data.smd_lock_read);
+    spin_lock_irqsave(&msm_rpm_data.smd_lock_read, flags);
 	while (smd_is_pkt_avail(msm_rpm_data.ch_info)) {
 		if (msm_rpm_read_smd_data(buf))
 			break;
@@ -909,7 +909,7 @@ static void data_fn_tasklet(unsigned long data)
 		errno = msm_rpm_get_error_from_ack(buf);
 		msm_rpm_process_ack(msg_id, errno);
 	}
-	spin_unlock(&msm_rpm_data.smd_lock_read);
+    spin_unlock_irqrestore(&msm_rpm_data.smd_lock_read, flags);
 }
 
 static void msm_rpm_log_request(struct msm_rpm_request *cdata)
