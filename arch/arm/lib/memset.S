@@ -21,6 +21,7 @@
 ARM(	.p2align 5	)
 THUMB(	.p2align 2	)
 
+ENTRY(mmioset)
 ENTRY(memset)
 	ands	r3, r0, #3
 	mov	ip, r0
@@ -145,3 +146,4 @@ ARM(	lsrs	r4, r4, #1	)
         ret     lr
 
 ENDPROC(memset)
+ENDPROC(mmioset)
