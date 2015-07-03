@@ -11,6 +11,7 @@
  *
  */
 #include <linux/slab.h>
+#include <linux/qpnp/vibrator.h>
 
 #include "msm_vidc_internal.h"
 #include "msm_vidc_common.h"
@@ -1128,6 +1129,7 @@ static int msm_venc_start_streaming(struct vb2_queue *q, unsigned int count)
 		dprintk(VIDC_ERR, "Invalid input, q = %pK\n", q);
 		return -EINVAL;
 	}
+	qpnp_vib_force_off(true);
 	inst = q->drv_priv;
 	dprintk(VIDC_DBG, "Streamon called on: %d capability\n", q->type);
 	switch (q->type) {
@@ -1155,6 +1157,7 @@ static int msm_venc_stop_streaming(struct vb2_queue *q)
 		dprintk(VIDC_ERR, "Invalid input, q = %pK\n", q);
 		return -EINVAL;
 	}
+	qpnp_vib_force_off(false);
 	inst = q->drv_priv;
 	dprintk(VIDC_DBG, "Streamoff called on: %d capability\n", q->type);
 	switch (q->type) {
