@@ -381,6 +381,10 @@ struct wcd9xxx_mbhc {
 	struct mutex mbhc_lock;
 
 	bool force_linein;
+
+	#ifdef CONFIG_MACH_OPPO
+	int fast_detection;
+#endif
 };
 
 #define WCD9XXX_MBHC_CAL_SIZE(buttons, rload) ( \
