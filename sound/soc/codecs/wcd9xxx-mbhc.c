@@ -154,6 +154,8 @@ MODULE_PARM_DESC(impedance_detect_en, "enable/disable impedance detect");
 
 static bool detect_use_vddio_switch;
 
+static bool detection_pending;
+
 struct wcd9xxx_mbhc_detect {
 	u16 dce;
 	u16 sta;
@@ -2418,6 +2420,8 @@ static void wcd9xxx_mbhc_decide_swch_plug(struct wcd9xxx_mbhc *mbhc)
 
 	pr_debug("%s: enter\n", __func__);
 
+	detection_pending = true;
+
 	WCD9XXX_BCL_ASSERT_LOCKED(mbhc->resmgr);
 
 	current_source_enable = (((mbhc->mbhc_cfg->cs_enable_flags &
@@ -2463,6 +2467,7 @@ static void wcd9xxx_mbhc_decide_swch_plug(struct wcd9xxx_mbhc *mbhc)
 		}
 		pr_debug("%s: Switch level is low when determining plug\n",
 			 __func__);
+		detection_pending = false;
 		return;
 	}
 
@@ -2877,6 +2882,10 @@ static void wcd9xxx_btn_lpress_fn(struct work_struct *work)
 	struct wcd9xxx_mbhc *mbhc;
 
 	pr_debug("%s:\n", __func__);
+
+	/* Don't process button interrupts while detection is pending */
+	if (detection_pending)
+		return;
 
 	dwork = to_delayed_work(work);
 	mbhc = container_of(dwork, struct wcd9xxx_mbhc, mbhc_btn_dwork);
@@ -3323,6 +3332,7 @@ static void wcd9xxx_correct_swch_plug(struct work_struct *work)
 	pr_debug("%s: leave current_plug(%d)\n", __func__, mbhc->current_plug);
 	/* unlock sleep */
 	wcd9xxx_unlock_sleep(mbhc->resmgr->core_res);
+	detection_pending = false;
 }
 
 static void wcd9xxx_swch_irq_handler(struct wcd9xxx_mbhc *mbhc)
