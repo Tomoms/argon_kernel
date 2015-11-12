@@ -859,9 +859,9 @@
 
 		qcom,l2-fmax =
 			<          0 0			 >,
-			<  576000000 4 /* SVS_SOC */	 >,
-			< 1036800000 5 /* NORMAL */	 >,
-			< 1728000000 7 /* SUPER_TURBO */ >;
+			<  65280000 4 /* SVS_SOC */	 >,
+			< 1113600000 5 /* NORMAL */	 >,
+			< 1804800000 7 /* SUPER_TURBO */ >;
 
 		qcom,speed0-pvs0-bin-v0 =
 			<          0       0   0 >,
