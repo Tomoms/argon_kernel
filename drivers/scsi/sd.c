@@ -598,7 +598,7 @@ static int scsi_setup_discard_cmnd(struct scsi_device *sdp, struct request *rq)
 		nr_sectors >>= 3;
 	}
 
-	rq->timeout = SD_TIMEOUT;
+	rq->timeout = SD_DISCARD_TIMEOUT;
 
 	memset(rq->cmd, 0, rq->cmd_len);
 
