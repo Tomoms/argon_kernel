@@ -755,6 +755,7 @@ static void *f2fs_encrypted_follow_link(struct dentry *dentry,
 	struct fscrypt_str pstr = FSTR_INIT(NULL, 0);
 	struct fscrypt_symlink_data *sd;
 	struct inode *inode = d_inode(dentry);
+	loff_t size = min_t(loff_t, i_size_read(inode), PAGE_SIZE - 1);
 	u32 max_size = inode->i_sb->s_blocksize;
 	int res;
 
