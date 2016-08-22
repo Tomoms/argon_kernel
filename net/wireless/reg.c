@@ -2193,7 +2193,11 @@ static int __set_regdom(const struct ieee80211_regdomain *rd)
 	    (last_request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
 	     last_request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)) {
 		queue_delayed_work(system_power_efficient_wq,
+<<<<<<< HEAD
 				   &reg_timeout, 0);
+=======
+			&reg_timeout, 0);
+>>>>>>> 579644b139be... Backport https://lists.linuxfoundation.org/pipermail/ltsi-dev/2013-December/002683.html from Kernel 3.10
 		return -ENODEV;
 	}
 
