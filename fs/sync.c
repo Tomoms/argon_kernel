@@ -308,11 +308,10 @@ static void do_afsync_work(struct work_struct *work)
 static int do_fsync(unsigned int fd, int datasync)
 {
 	struct file *file;
-	int ret = -EBADF;
-
 #ifdef CONFIG_ASYNC_FSYNC
 	struct fsync_work *fwork;
 #endif
+	int ret = -EBADF;
 
 	file = fget(fd);
 
