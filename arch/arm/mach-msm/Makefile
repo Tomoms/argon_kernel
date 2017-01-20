@@ -422,5 +422,6 @@ obj-$(CONFIG_WALL_CLK) += wallclk.o
 obj-$(CONFIG_WALL_CLK_SYSFS) += wallclk_sysfs.o
 
 obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
+obj-$(CONFIG_AUTOSMP) += autosmp.o
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 obj-$(CONFIG_PERFMAP) += perfmap.o
