@@ -1204,7 +1204,7 @@ qpnp_chg_iusbmax_set(struct qpnp_chg_chip *chip, int mA)
 #define QPNP_CHG_VINMIN_STEP_MV		50
 #define QPNP_CHG_VINMIN_STEP_HIGH_MV	200
 #define QPNP_CHG_VINMIN_MASK		0x3F
-#define QPNP_CHG_VINMIN_MIN_VAL	0x0C
+#define QPNP_CHG_VINMIN_MIN_VAL		0x0C
 #ifdef CONFIG_BQ24196_CHARGER_OPPO
 static int
 qpnp_chg_vinmin_set(struct qpnp_chg_chip *chip, int voltage)
