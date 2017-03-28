@@ -840,8 +840,10 @@ static void bq27541_hw_config(struct work_struct *work)
 		dev_err(di->dev, "Failed to config Bq27541\n");
 #ifdef CONFIG_MACH_OPPO
 		di->retry_count--;
-		if (di->retry_count > 0)
-			schedule_delayed_work(&di->hw_config, HZ);
+		if (di->retry_count > 0) {
+			queue_delayed_work(system_power_efficient_wq,
+				&di->hw_config, HZ);
+		}
 #endif
 		return;
 	}
@@ -1677,12 +1679,13 @@ static int bq27541_battery_probe(struct i2c_client *client,
 	INIT_WORK(&di->counter, bq27541_coulomb_counter_work);
 	INIT_DELAYED_WORK(&di->hw_config, bq27541_hw_config);
 #ifdef CONFIG_MACH_OPPO
-	schedule_delayed_work(&di->hw_config, 0);
-
+	queue_delayed_work(system_power_efficient_wq,
+		&di->hw_config, 0);
+    
 	INIT_DELAYED_WORK(&di->update_soc_work, update_soc);
-	schedule_delayed_work(&di->update_soc_work,
-			      round_jiffies_relative(
-			      msecs_to_jiffies(BATT_SOC_INTERVAL)));
+	queue_delayed_work(system_power_efficient_wq,
+        &di->update_soc_work,
+		round_jiffies_relative(msecs_to_jiffies(BATT_SOC_INTERVAL)));
 #ifdef CONFIG_PIC1503_FASTCG_OPPO
 	init_timer(&di->watchdog);
 	di->watchdog.data = (unsigned long)di;
@@ -1699,7 +1702,8 @@ static int bq27541_battery_probe(struct i2c_client *client,
 			      msecs_to_jiffies(FASTCG_REQUESET_IRQ_INTERVAL)));
 #endif
 #else
-	schedule_delayed_work(&di->hw_config, BQ27541_INIT_DELAY);
+	queue_delayed_work(system_power_efficient_wq,
+		&di->hw_config, BQ27541_INIT_DELAY);
 #endif
 	return 0;
 
