@@ -106,19 +106,19 @@ struct apr_svc *apr_register(char *dest, char *svc_name, apr_fn svc_fn,
 			mutex_unlock(&svc->m_lock);
 			return NULL;
 		}
-		if (!svc->port_cnt && !svc->svc_cnt)
+		if (!svc->svc_cnt)
 			client->svc_cnt++;
 		svc->port_cnt++;
 		svc->port_fn[temp_port] = svc_fn;
 		svc->port_priv[temp_port] = priv;
+		svc->svc_cnt++;
 	} else {
 		if (!svc->fn) {
-			if (!svc->port_cnt && !svc->svc_cnt)
+			if (!svc->svc_cnt)
 				client->svc_cnt++;
 			svc->fn = svc_fn;
-			if (svc->port_cnt)
-				svc->svc_cnt++;
 			svc->priv = priv;
+			svc->svc_cnt++;
 		}
 	}
 
