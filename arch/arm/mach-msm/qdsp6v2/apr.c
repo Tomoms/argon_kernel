@@ -510,24 +510,17 @@ int apr_deregister(void *handle)
 	client_id = svc->client_id;
 	clnt = &client[dest_id][client_id];
 
-	if (svc->port_cnt > 0 || svc->svc_cnt > 0) {
+	if (svc->svc_cnt > 0) {
 		if (svc->port_cnt)
 			svc->port_cnt--;
-		else if (svc->svc_cnt)
-			svc->svc_cnt--;
-		if (!svc->port_cnt && !svc->svc_cnt) {
+		svc->svc_cnt--;
+		if (!svc->svc_cnt) {
 			client[dest_id][client_id].svc_cnt--;
-			svc->need_reset = 0x0;
-		}
-	} else if (client[dest_id][client_id].svc_cnt > 0) {
-		client[dest_id][client_id].svc_cnt--;
-		if (!client[dest_id][client_id].svc_cnt) {
-			svc->need_reset = 0x0;
 			pr_debug("%s: service is reset %pK\n", __func__, svc);
 		}
 	}
 
-	if (!svc->port_cnt && !svc->svc_cnt) {
+	if (!svc->svc_cnt) {
 		svc->priv = NULL;
 		svc->id = 0;
 		svc->fn = NULL;
