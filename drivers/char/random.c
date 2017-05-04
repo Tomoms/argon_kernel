@@ -763,8 +763,6 @@ void add_device_randomness(const void *buf, unsigned int size)
 }
 EXPORT_SYMBOL(add_device_randomness);
 
-static struct timer_rand_state input_timer_state = INIT_TIMER_RAND_STATE;
-
 /*
  * This function adds entropy to the entropy "pool" by using timing
  * delays.  It uses the timer_rand_state structure to make an estimate
@@ -1313,37 +1311,6 @@ void rand_initialize_disk(struct gendisk *disk)
 	}
 }
 #endif
-
-/*
- * Attempt an emergency refill using arch_get_random_seed_long().
- *
- * As with add_interrupt_randomness() be paranoid and only
- * credit the output as 50% entropic.
- */
-static int arch_random_refill(void)
-{
-	const unsigned int nlongs = 64;	/* Arbitrary number */
-	unsigned int n = 0;
-	unsigned int i;
-	unsigned long buf[nlongs];
-
-	if (!arch_has_random_seed())
-		return 0;
-
-	for (i = 0; i < nlongs; i++) {
-		if (arch_get_random_seed_long(&buf[n]))
-			n++;
-	}
-
-	if (n) {
-		unsigned int rand_bytes = n * sizeof(unsigned long);
-
-		mix_pool_bytes(&input_pool, buf, rand_bytes, NULL);
-		credit_entropy_bits(&input_pool, rand_bytes*4);
-	}
-
-	return n;
-}
 
 static ssize_t
 _random_read(int nonblock, char __user *buf, size_t nbytes)
