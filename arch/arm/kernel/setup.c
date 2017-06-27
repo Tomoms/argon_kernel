@@ -1070,9 +1070,6 @@ static const char *hwcap_str[] = {
 	"vfpv4",
 	"idiva",
 	"idivt",
-	"vfpd32",
-	"lpae",
-	"evtstrm",
 	NULL
 };
 
