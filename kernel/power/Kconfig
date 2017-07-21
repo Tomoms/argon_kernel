@@ -310,3 +310,8 @@ config DEDUCE_WAKEUP_REASONS
 	bool
 	default n
 
+config STATE_NOTIFIER
+	bool "State Notifier Driver"
+	default y
+	help
+	  Allows monitoring the current display state.
