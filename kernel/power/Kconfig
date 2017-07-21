@@ -342,3 +342,9 @@ config PM_SYNC_BEFORE_SUSPEND
 	bool "Sync file systems before suspend"
 	depends on PM
 	default y
+
+config STATE_NOTIFIER
+	bool "State Notifier Driver"
+	default y
+	help
+	  Allows monitoring the current display state.
