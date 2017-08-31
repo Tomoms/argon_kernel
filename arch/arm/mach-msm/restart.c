@@ -110,6 +110,7 @@ static bool get_dload_mode(void)
 }
 #endif
 
+#if 0
 static void enable_emergency_dload_mode(void)
 {
 	if (emergency_dload_mode_addr) {
@@ -128,6 +129,7 @@ static void enable_emergency_dload_mode(void)
 		mb();
 	}
 }
+#endif
 
 static int dload_set(const char *val, struct kernel_param *kp)
 {
@@ -298,6 +300,7 @@ static void msm_restart_prepare(const char *cmd)
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
+#if 0
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
 #ifdef CONFIG_MACH_OPPO
@@ -315,6 +318,7 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(0x7766550b, restart_reason);
 		} else if (!strncmp(cmd, "android", 7)) {
 			__raw_writel(0x7766550c, restart_reason);
+
 #endif
 		} else {
 			__raw_writel(0x77665501, restart_reason);
