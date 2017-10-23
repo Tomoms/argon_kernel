@@ -25,6 +25,7 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 #include <linux/time.h>
+#include <trace/events/sched.h>
 
 struct cpu_sync {
 	struct task_struct *thread;
@@ -291,7 +292,7 @@ static int boost_migration_notify(struct notifier_block *nb,
 	if (s->thread == current)
 		return NOTIFY_OK;
 
-	pr_debug("Migration: CPU%d --> CPU%d\n", (int) arg, (int) dest_cpu);
+	pr_debug("Migration: CPU%d --> CPU%d\n", mnd->src_cpu, mnd->dest_cpu);
 	spin_lock_irqsave(&s->lock, flags);
 	s->pending = true;
 	s->src_cpu = (int) arg;
