@@ -23,6 +23,7 @@
 #include <linux/regulator/consumer.h>
 #ifdef CONFIG_STATE_NOTIFIER
 #include <linux/state_notifier.h>
+bool scr_suspended;
 #endif
 
 #include "mdss.h"
@@ -1119,6 +1120,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 			rc = mdss_dsi_unblank(pdata);
 #ifdef CONFIG_STATE_NOTIFIER
 		state_resume();
+		scr_suspended = false;
 #endif
 		break;
 	case MDSS_EVENT_BLANK:
@@ -1134,6 +1136,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		rc = mdss_dsi_off(pdata, power_state);
 #ifdef CONFIG_STATE_NOTIFIER
 		state_suspend();
+		scr_suspended = true;
 #endif
 		break;
 	case MDSS_EVENT_CONT_SPLASH_FINISH:
