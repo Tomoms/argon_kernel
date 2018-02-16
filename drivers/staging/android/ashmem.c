@@ -275,7 +275,6 @@ static loff_t ashmem_llseek(struct file *file, loff_t offset, int origin)
 
 	/** Copy f_pos from backing file, since f_ops->llseek() sets it */
 	file->f_pos = asma->file->f_pos;
-
 	return ret;
 }
 
