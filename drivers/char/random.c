@@ -257,6 +257,7 @@
 #include <linux/kmemcheck.h>
 #include <linux/workqueue.h>
 #include <linux/irq.h>
+#include <linux/kthread.h>
 
 #include <asm/processor.h>
 #include <asm/uaccess.h>

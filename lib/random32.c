@@ -98,7 +98,7 @@ EXPORT_SYMBOL(prandom_u32);
  *	This is used for pseudo-randomness with no outside seeding.
  *	For more random results, use prandom_bytes().
  */
-void prandom_bytes_state(struct rnd_state *state, void *buf, size_t bytes)
+void prandom_bytes_state(struct rnd_state *state, void *buf, int bytes)
 {
 	u8 *ptr = buf;
 
@@ -297,7 +297,7 @@ void prandom_reseed_late(void)
 static int __init prandom_reseed(void)
 {
 	__prandom_reseed(false);
-	prandom_start_seed_timer();
+	__prandom_start_seed_timer();
 	return 0;
 }
 late_initcall(prandom_reseed);
