@@ -192,8 +192,8 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 export KBUILD_BUILDHOST := $(SUBARCH)
-ARCH		?= $(SUBARCH)
-CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+ARCH		?= arm
+CROSS_COMPILE	?= ../../TC/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -245,10 +245,10 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 GRAPHITE = -fgraphite -fgraphite-identity -floop-interchange -ftree-loop-linear -floop-strip-mine -floop-block -floop-parallelize-all -floop-nest-optimize
 
-HOSTCC       = gcc
-HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -pipe -g0 -DNDEBUG -O3 -fno-toplevel-reorder -fuse-linker-plugin -flto -fomit-frame-pointer -fopenmp $(GRAPHITE)
-HOSTCXXFLAGS = -pipe -g0 -DNDEBUG -O3 -fno-toplevel-reorder -fuse-linker-plugin -flto $(GRAPHITE)
+HOSTCC       = gcc-7
+HOSTCXX      = g++-7
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -pipe -g0 -DNDEBUG -O2 -fno-toplevel-reorder -fomit-frame-pointer $(GRAPHITE)
+HOSTCXXFLAGS = -pipe -g0 -DNDEBUG -O2 -fno-toplevel-reorder $(GRAPHITE)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -330,24 +330,18 @@ include $(srctree)/scripts/Kbuild.include
 
 # Make variables (CC, etc...)
 
-GCC_OPT		:=	-marm \
-			-mcpu=cortex-a15 \
+GCC_OPT		:=	-mcpu=cortex-a15 -fsched-pressure -fira-loop-pressure -ftree-loop-distribution -ftree-loop-ivcanon -ftree-loop-im -fweb -frename-registers -fgcse-las -fgcse-lm -fgcse-sm -funswitch-loops -fgcse-after-reload -fsched-spec-load -fsched-spec-load-dangerous -ftree-partial-pre -ftree-vectorize \
 			-mtune=cortex-a15 \
 			-mvectorize-with-neon-quad \
-			-mfpu=neon-vfpv4 \
-			-mfloat-abi=softfp \
 			-munaligned-access \
 			--param l1-cache-size=16 \
-			--param l1-cache-line-size=16 \
+			--param l1-cache-line-size=64 \
 			--param l2-cache-size=2048 \
-			-ffast-math \
-			-O3 \
+			-O2 \
 			-pipe \
 			-g0 \
 			-DNDEBUG \
 			-fomit-frame-pointer \
-			-fmodulo-sched \
-			-fmodulo-sched-allow-regmoves \
 			-fivopts \
 			-ftree-loop-vectorize \
 			-ftree-slp-vectorize \
@@ -355,7 +349,6 @@ GCC_OPT		:=	-marm \
 			-fsingle-precision-constant \
 			-fpredictive-commoning \
 			-fopenmp \
-			-fsanitize=leak \
 			-Wno-maybe-uninitialized \
 			-Wno-incompatible-pointer-types \
 			-Wno-format-security \
@@ -377,7 +370,7 @@ GCC_OPT		:=	-marm \
 			$(GRAPHITE)
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld.gold -O3 --strip-debug
+LD		= $(CROSS_COMPILE)ld.gold -O3 --strip-debug --sort-common
 CC		= $(CROSS_COMPILE)gcc $(GCC_OPT)
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
@@ -430,6 +423,7 @@ KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+
 
 export VERSION PATCHLEVEL SUBLEVEL KERNELRELEASE KERNELVERSION
 export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE AS LD CC
@@ -610,11 +604,13 @@ endif # $(dot-config)
 all: vmlinux
 
 KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
+# Needed to unbreak GCC 7.x and above
+KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
-KBUILD_CFLAGS	+= -O3 $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
