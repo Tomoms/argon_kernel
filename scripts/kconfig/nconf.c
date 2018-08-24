@@ -1503,7 +1503,7 @@ int main(int ac, char **av)
 	}
 
 	notimeout(stdscr, FALSE);
-	ESCDELAY = 1;
+	set_escdelay(1);
 
 	/* set btns menu */
 	curses_menu = new_menu(curses_menu_items);
