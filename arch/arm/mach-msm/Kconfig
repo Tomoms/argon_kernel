@@ -3060,3 +3060,11 @@ config KERNEL_TEXT_MPU_PROT
           sections early in boot. Read access is permitted to
           all masters; Write access is only permited to the
           secure world.
+
+config BRICKED_HOTPLUG
+	bool "Bricked Hotplug"
+	depends on MSM_RUN_QUEUE_STATS
+	default n
+	help
+	  This enables a Kernel based multi-core control based on load. It's often 
+	  called MSM MPDecision.
