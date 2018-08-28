@@ -32,6 +32,7 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
+dtbToolCM
 
 #
 # Top-level generic files
