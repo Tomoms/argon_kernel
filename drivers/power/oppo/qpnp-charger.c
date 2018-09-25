@@ -6380,7 +6380,7 @@ static int set_prop_batt_health(struct qpnp_chg_chip *chip, int batt_health)
 #define MAX_COUNT	50
 
 /* jingchun.wang@Onlinerd.Driver, 2014/01/02  Add for set soft aicl voltage to 4.4v */
-#define SOFT_AICL_VOL	4500
+#define SOFT_AICL_VOL	4400
 
 /* jingchun.wang@Onlinerd.Driver, 2013/12/27  Add for auto adapt current by software. */
 static int soft_aicl(struct qpnp_chg_chip *chip)
@@ -6665,8 +6665,8 @@ static int qpnp_start_charging(struct qpnp_chg_chip *chip)
 
 #ifdef CONFIG_CHARGE_LEVEL
 		if (charge_level != 0) {
-            qpnp_chg_ibatmax_set(chip, charge_info_level);
-            qpnp_chg_ibatmax_set(chip, charge_info_level);
+            qpnp_chg_ibatmax_set(chip, charge_level);
+            qpnp_chg_ibatmax_set(chip, charge_level);
         } else {
 #endif /* CONFIG_CHARGE_LEVEL */
 		if (qpnp_charger_type_get(chip) == POWER_SUPPLY_TYPE_USB_DCP) {
@@ -6730,8 +6730,8 @@ static int qpnp_start_charging(struct qpnp_chg_chip *chip)
 
 #ifdef CONFIG_CHARGE_LEVEL
 		if (charge_level != 0) {
-            qpnp_chg_ibatmax_set(chip, charge_info_level);
-            qpnp_chg_ibatmax_set(chip, charge_info_level);
+            qpnp_chg_ibatmax_set(chip, charge_level);
+            qpnp_chg_ibatmax_set(chip, charge_level);
         } else {
 #endif /* CONFIG_CHARGE_LEVEL */
 		if (qpnp_charger_type_get(chip) == POWER_SUPPLY_TYPE_USB_DCP) {
