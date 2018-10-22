@@ -193,7 +193,7 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
 export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		?= arm
-CROSS_COMPILE	?= ../../821/bin/arm-linux-gnueabihf-
+CROSS_COMPILE	?= ../../TC/bin/arm-eabi-
 
 # Architecture as present in compile.h
 UTS_MACHINE 	:= $(ARCH)
@@ -370,7 +370,7 @@ GCC_OPT		:=	-mcpu=cortex-a15 -fsched-pressure -fira-loop-pressure -ftree-loop-di
 			$(GRAPHITE)
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld -O3 --strip-debug --sort-common
+LD		= $(CROSS_COMPILE)ld.gold -O3 --strip-debug --sort-common
 CC		= $(CROSS_COMPILE)gcc $(GCC_OPT)
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
