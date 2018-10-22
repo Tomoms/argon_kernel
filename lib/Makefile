@@ -143,5 +143,3 @@ quiet_cmd_crc32 = GEN     $@
 
 $(obj)/crc32table.h: $(obj)/gen_crc32table
 	$(call cmd,crc32)
-
-subdir-cflags-y := -fmodulo-sched -fmodulo-sched-allow-regmoves

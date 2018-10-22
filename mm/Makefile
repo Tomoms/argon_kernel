@@ -57,4 +57,3 @@ obj-$(CONFIG_ZBUD)  += zbud.o
 obj-$(CONFIG_ZPOOL)	+= zpool.o
 obj-$(CONFIG_ZSMALLOC)	+= zsmalloc.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
-subdir-cflags-y := -fmodulo-sched -fmodulo-sched-allow-regmoves
