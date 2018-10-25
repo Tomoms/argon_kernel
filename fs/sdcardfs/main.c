@@ -36,6 +36,7 @@ enum {
 	Opt_default_normal,
 	Opt_unshared_obb,
 	Opt_nocache,
+	Opt_unshared_obb,
 	Opt_err,
 };
 
@@ -137,6 +138,9 @@ static int parse_options(struct super_block *sb, char *options, int silent,
 			opts->unshared_obb = true;
 		case Opt_nocache:
 			opts->nocache = true;
+			break;
+		case Opt_unshared_obb:
+			opts->unshared_obb = true;
 			break;
 		/* unknown option */
 		default:
