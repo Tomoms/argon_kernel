@@ -268,6 +268,18 @@ static struct pil_reset_ops pil_pronto_ops_trusted = {
 
 #define subsys_to_drv(d) container_of(d, struct pronto_data, subsys_desc)
 
+static int pronto_start(const struct subsys_desc *desc)
+{
+	struct pronto_data *drv = subsys_to_drv(desc);
+	return pil_boot(&drv->desc);
+}
+
+static void pronto_stop(const struct subsys_desc *desc)
+{
+	struct pronto_data *drv = subsys_to_drv(desc);
+	pil_shutdown(&drv->desc);
+}
+
 static void log_wcnss_sfr(void)
 {
 	char *smem_reset_reason;
@@ -329,6 +341,9 @@ static irqreturn_t wcnss_wdog_bite_irq_hdlr(int irq, void *dev_id)
 	struct pronto_data *drv = subsys_to_drv(dev_id);
 
 	drv->crash = true;
+
+	disable_irq_nosync(drv->subsys_desc.wdog_bite_irq);
+
 	if (drv->restart_inprogress) {
 		pr_err("Ignoring wcnss bite irq, restart in progress\n");
 		return IRQ_HANDLED;
@@ -490,6 +505,8 @@ static int __devinit pil_pronto_probe(struct platform_device *pdev)
 	drv->subsys_desc.powerup = wcnss_powerup;
 	drv->subsys_desc.ramdump = wcnss_ramdump;
 	drv->subsys_desc.crash_shutdown = crash_shutdown;
+	drv->subsys_desc.start = pronto_start;
+	drv->subsys_desc.stop = pronto_stop;
 	drv->subsys_desc.err_fatal_handler = wcnss_err_fatal_intr_handler;
 	drv->subsys_desc.wdog_bite_handler = wcnss_wdog_bite_irq_hdlr;
 

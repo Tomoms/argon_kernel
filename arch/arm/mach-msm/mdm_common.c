@@ -600,8 +600,7 @@ static irqreturn_t mdm_pblrdy_change(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int mdm_subsys_shutdown(const struct subsys_desc *crashed_subsys,
-							bool force_stop)
+static int mdm_subsys_shutdown(const struct subsys_desc *crashed_subsys)
 {
 	struct mdm_device *mdev =
 	 container_of(crashed_subsys, struct mdm_device, mdm_subsys);
