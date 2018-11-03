@@ -71,8 +71,7 @@ static void charm_disable_irqs(void)
 
 }
 
-static int charm_subsys_shutdown(const struct subsys_desc *crashed_subsys,
-							bool force_stop)
+static int charm_subsys_shutdown(const struct subsys_desc *crashed_subsys)
 {
 	charm_ready = 0;
 	power_down_charm();
