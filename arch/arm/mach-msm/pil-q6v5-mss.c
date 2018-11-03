@@ -125,7 +125,7 @@ static int modem_shutdown(const struct subsys_desc *subsys, bool force_stop)
 
 	pil_shutdown(&drv->mba->desc);
 	pil_shutdown(&drv->q6->desc);
-
+	disable_irq(drv->subsys_desc.wdog_bite_irq);
 	return 0;
 }
 
@@ -148,7 +148,7 @@ static int modem_powerup(const struct subsys_desc *subsys)
 	ret = pil_boot(&drv->mba->desc);
 	if (ret)
 		pil_shutdown(&drv->q6->desc);
-
+	enable_irq(drv->subsys_desc.wdog_bite_irq);
 	return ret;
 }
 
