@@ -83,7 +83,7 @@ static void _suspend_work(struct work_struct *work)
 	state_suspended = true;
 	suspend_in_progress = false;
 	dprintk("%s: suspend completed.\n", STATE_NOTIFIER);
-
+/*
 	if (unlikely(!mutex_trylock(&pm_mutex))) {
 	pr_info("PM is busy. Skipping suspension\n");
 	return;
@@ -92,6 +92,7 @@ static void _suspend_work(struct work_struct *work)
 	pr_info("state_notifier: calling system suspension\n");
 	pm_suspend(PM_HIBERNATION_PREPARE);
 	mutex_unlock(&pm_mutex);
+*/
 }
 
 static void _resume_work(struct work_struct *work)
