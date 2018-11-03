@@ -24,7 +24,6 @@ struct subsys_device;
 enum {
 	RESET_SOC = 0,
 	RESET_SUBSYS_COUPLED,
-	RESET_IGNORE,
 	RESET_LEVEL_MAX
 };
 
@@ -37,6 +36,8 @@ struct module;
  * @depends_on: subsystem this subsystem depends on to operate
  * @dev: parent device
  * @owner: module the descriptor belongs to
+ * @start: Start a subsystem
+ * @stop: Stop a subsystem
  * @shutdown: Stop a subsystem
  * @powerup: Start a subsystem
  * @crash_shutdown: Shutdown a subsystem when the system crashes (can't sleep)
@@ -50,7 +51,10 @@ struct subsys_desc {
 	struct device *dev;
 	struct module *owner;
 
-	int (*shutdown)(const struct subsys_desc *desc, bool force_stop);
+	int (*start)(const struct subsys_desc *desc);
+	void (*stop)(const struct subsys_desc *desc);
+
+	int (*shutdown)(const struct subsys_desc *desc);
 	int (*powerup)(const struct subsys_desc *desc);
 	void (*crash_shutdown)(const struct subsys_desc *desc);
 	int (*ramdump)(int, const struct subsys_desc *desc);
@@ -63,16 +67,6 @@ struct subsys_desc {
 	unsigned int stop_ack_irq;
 	unsigned int wdog_bite_irq;
 	int force_stop_gpio;
-};
-
-/**
- * struct notif_data - additional notif information
- * @crashed: indicates if subsystem has crashed
- * @enable_ramdump: ramdumps disabled if set to 0
- */
-struct notif_data {
-	bool crashed;
-	int enable_ramdump;
 };
 
 #if defined(CONFIG_MSM_SUBSYSTEM_RESTART)
@@ -91,8 +85,7 @@ extern void subsys_unregister(struct subsys_device *dev);
 extern void subsys_default_online(struct subsys_device *dev);
 extern void subsys_set_crash_status(struct subsys_device *dev, bool crashed);
 extern bool subsys_get_crash_status(struct subsys_device *dev);
-void notify_proxy_vote(struct device *device);
-void notify_proxy_unvote(struct device *device);
+
 #else
 
 static inline int subsys_get_restart_level(struct subsys_device *dev)
@@ -137,8 +130,7 @@ static inline bool subsys_get_crash_status(struct subsys_device *dev)
 {
 	return false;
 }
-void notify_proxy_vote(struct device *device) { }
-void notify_proxy_unvote(struct device *device) { }
+
 #endif /* CONFIG_MSM_SUBSYSTEM_RESTART */
 
 #endif
