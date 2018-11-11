@@ -26,6 +26,7 @@
 /* Print length for names. Extra 1 space for accomodating '\n' in prints */
 #define CPUFREQ_NAME_PLEN (CPUFREQ_NAME_LEN + 1)
 
+extern bool check_cpuboost(int cpu);
 
 /*********************************************************************
  *                     CPUFREQ NOTIFIER INTERFACE                    *
