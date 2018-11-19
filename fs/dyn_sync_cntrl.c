@@ -1,5 +1,6 @@
 /*
  * Author: Paul Reioux aka Faux123 <reioux@gmail.com>
+ * Modified by Tomoms (v1.3): converted to state_notifier.
  *
  * Copyright 2013 Paul Reioux
  * Copyright 2012 Paul Reioux
@@ -18,23 +19,25 @@
 #include <linux/module.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
-#include <linux/earlysuspend.h>
+#include <linux/state_notifier.h>
 #include <linux/mutex.h>
 #include <linux/notifier.h>
 #include <linux/reboot.h>
 #include <linux/writeback.h>
 
 #define DYN_FSYNC_VERSION_MAJOR 1
-#define DYN_FSYNC_VERSION_MINOR 2
+#define DYN_FSYNC_VERSION_MINOR 3
 
 /*
- * fsync_mutex protects dyn_fsync_active during early suspend / late resume
+ * fsync_mutex protects dyn_fsync_active during suspend / resume
  * transitions
  */
 static DEFINE_MUTEX(fsync_mutex);
 
-bool early_suspend_active __read_mostly = false;
-bool dyn_fsync_active __read_mostly = true;
+static struct notifier_block notif;
+
+bool dyn_fsync_active __read_mostly = false;
+bool suspended __read_mostly = false;
 
 static ssize_t dyn_fsync_active_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -67,15 +70,9 @@ static ssize_t dyn_fsync_active_store(struct kobject *kobj,
 static ssize_t dyn_fsync_version_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "version: %u.%u by faux123\n",
+	return sprintf(buf, "version: %u.%u by faux123, modified by Tomoms\n",
 		DYN_FSYNC_VERSION_MAJOR,
 		DYN_FSYNC_VERSION_MINOR);
-}
-
-static ssize_t dyn_fsync_earlysuspend_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "early suspend active: %u\n", early_suspend_active);
 }
 
 static struct kobj_attribute dyn_fsync_active_attribute = 
@@ -86,14 +83,10 @@ static struct kobj_attribute dyn_fsync_active_attribute =
 static struct kobj_attribute dyn_fsync_version_attribute = 
 	__ATTR(Dyn_fsync_version, 0444, dyn_fsync_version_show, NULL);
 
-static struct kobj_attribute dyn_fsync_earlysuspend_attribute = 
-	__ATTR(Dyn_fsync_earlysuspend, 0444, dyn_fsync_earlysuspend_show, NULL);
-
 static struct attribute *dyn_fsync_active_attrs[] =
 	{
 		&dyn_fsync_active_attribute.attr,
 		&dyn_fsync_version_attribute.attr,
-		&dyn_fsync_earlysuspend_attribute.attr,
 		NULL,
 	};
 
@@ -112,34 +105,47 @@ static void dyn_fsync_force_flush(void)
 	sync_filesystems(1);
 }
 
-static void dyn_fsync_early_suspend(struct early_suspend *h)
+static void dyn_fsync_suspend(void)
 {
 	mutex_lock(&fsync_mutex);
 	if (dyn_fsync_active) {
-		early_suspend_active = true;
+		suspended = true;
 		dyn_fsync_force_flush();
 	}
 	mutex_unlock(&fsync_mutex);
 }
 
-static void dyn_fsync_late_resume(struct early_suspend *h)
+static void dyn_fsync_resume(void)
 {
 	mutex_lock(&fsync_mutex);
-	early_suspend_active = false;
+	suspended = false;
 	mutex_unlock(&fsync_mutex);
 }
 
-static struct early_suspend dyn_fsync_early_suspend_handler = 
-	{
-		.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-		.suspend = dyn_fsync_early_suspend,
-		.resume = dyn_fsync_late_resume,
-	};
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	if (!dyn_fsync_active)
+		return NOTIFY_OK;
+
+	switch (event) {
+		case STATE_NOTIFIER_ACTIVE:
+			dyn_fsync_resume();
+			break;
+		case STATE_NOTIFIER_SUSPEND:
+			dyn_fsync_suspend();
+			break;
+		default:
+			break;
+	}
+
+	return NOTIFY_OK;
+}
 
 static int dyn_fsync_panic_event(struct notifier_block *this,
 		unsigned long event, void *ptr)
 {
-	early_suspend_active = true;
+	suspended = true;
 	dyn_fsync_force_flush();
 	//pr_warn("dyn fsync: panic: force flush!\n");
 
@@ -155,7 +161,7 @@ static int dyn_fsync_notify_sys(struct notifier_block *this, unsigned long code,
 				void *unused)
 {
 	if (code == SYS_DOWN || code == SYS_HALT) {
-		early_suspend_active = true;
+		suspended = true;
 		dyn_fsync_force_flush();
 		//pr_warn("dyn fsync: reboot: force flush!\n");
 	}
@@ -169,8 +175,12 @@ static struct notifier_block dyn_fsync_notifier = {
 static int dyn_fsync_init(void)
 {
 	int sysfs_result;
-
-	register_early_suspend(&dyn_fsync_early_suspend_handler);
+	
+	notif.notifier_call = state_notifier_callback;
+	if (unlikely(state_register_client(&notif))) {
+		pr_err("dyn_fsync: failed to register state_notifier callback\n");
+		return 1;
+	}
 	register_reboot_notifier(&dyn_fsync_notifier);
 	atomic_notifier_chain_register(&panic_notifier_list,
 		&dyn_fsync_panic_block);
@@ -193,7 +203,7 @@ static int dyn_fsync_init(void)
 
 static void dyn_fsync_exit(void)
 {
-	unregister_early_suspend(&dyn_fsync_early_suspend_handler);
+	state_unregister_client(&notif);
 	unregister_reboot_notifier(&dyn_fsync_notifier);
 	atomic_notifier_chain_unregister(&panic_notifier_list,
 		&dyn_fsync_panic_block);
