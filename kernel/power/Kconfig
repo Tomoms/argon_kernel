@@ -26,6 +26,14 @@ config WAKELOCK
 	bool
 	default y
 
+config HAS_WAKELOCK
+	bool
+	default y
+
+config WAKELOCK
+	bool
+	default y
+
 config HIBERNATE_CALLBACKS
 	bool
 
