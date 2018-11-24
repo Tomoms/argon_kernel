@@ -236,10 +236,12 @@ SYSCALL_DEFINE1(syncfs, int, fd)
 int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (unlikely(dyn_fsync_active && !suspended))
+	if (unlikely(dyn_fsync_active && !suspended)) {
+		pr_info("DYNAMIC FSYNC: vfs_fsync_range: not syncing!");
 		return 0;
-	else {
+	} else {
 #endif
+	pr_info("DYNAMIC FSYNC: vfs_fsync_range: syncing!");
 	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
 	return file->f_op->fsync(file, start, end, datasync);
@@ -377,21 +379,27 @@ no_async:
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (unlikely(dyn_fsync_active && !suspended))
+	if (unlikely(dyn_fsync_active && !suspended)) {
+		pr_info("DYNAMIC FSYNC: fsync sysc: not syncing!");
 		return 0;
-	else
+	} else {
 #endif
+	pr_info("DYNAMIC FSYNC: fsync sysc: syncing!");
 	return do_fsync(fd, 0);
+	}
 }
 
 SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (unlikely(dyn_fsync_active && !suspended))
+	if (unlikely(dyn_fsync_active && !suspended)) {
+		pr_info("DYNAMIC FSYNC: fdatasync sysc: not syncing!");
 		return 0;
-	else
+	} else {
 #endif
+	pr_info("DYNAMIC FSYNC: fdatasync sysc: syncing!");
 	return do_fsync(fd, 1);
+	}
 }
 
 /**
@@ -462,11 +470,12 @@ SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 				unsigned int flags)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (unlikely(dyn_fsync_active && !suspended))
+	if (unlikely(dyn_fsync_active && !suspended)) {
+		pr_info("DYNAMIC FSYNC: sync_file_range sysc: not syncing!");
 		return 0;
-	else {
+	} else {
 #endif
-
+	pr_info("DYNAMIC FSYNC: sync_file_range sysc: syncing!");
 	int ret;
 	struct file *file;
 	struct address_space *mapping;
@@ -567,11 +576,14 @@ SYSCALL_DEFINE(sync_file_range2)(int fd, unsigned int flags,
 				 loff_t offset, loff_t nbytes)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (unlikely(dyn_fsync_active && !suspended))
+	if (unlikely(dyn_fsync_active && !suspended)) {
+		pr_info("DYNAMIC FSYNC: sync_file_range2 sysc: not syncing!");
 		return 0;
-	else
+	} else {
 #endif
+	pr_info("DYNAMIC FSYNC: sync_file_range2 sysc: syncing!");
 	return sys_sync_file_range(fd, offset, nbytes, flags);
+	}
 }
 #ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
 asmlinkage long SyS_sync_file_range2(long fd, long flags,

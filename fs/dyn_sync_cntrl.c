@@ -107,6 +107,7 @@ static void dyn_fsync_force_flush(void)
 
 static void dyn_fsync_suspend(void)
 {
+	pr_info("DYNAMIC FSYNC: suspending...");
 	mutex_lock(&fsync_mutex);
 	if (dyn_fsync_active) {
 		suspended = true;
@@ -117,6 +118,7 @@ static void dyn_fsync_suspend(void)
 
 static void dyn_fsync_resume(void)
 {
+	pr_info("DYNAMIC FSYNC: resuming...");
 	mutex_lock(&fsync_mutex);
 	suspended = false;
 	mutex_unlock(&fsync_mutex);
