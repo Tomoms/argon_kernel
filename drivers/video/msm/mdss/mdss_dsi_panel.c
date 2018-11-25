@@ -46,6 +46,8 @@ bool is_display_on()
 	return display_on;
 }
 
+extern void relay_gfs(unsigned int gfs);
+
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	ctrl->pwm_bl = pwm_request(ctrl->pwm_lpg_chan, "lcd-bklt");
@@ -477,6 +479,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	state_resume();
 #endif
 	display_on = true;
+	relay_gfs(0);
 
 	pinfo = &pdata->panel_info;
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
@@ -518,6 +521,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	state_suspend();
 #endif
 	display_on = false;
+	relay_gfs(1);
 
 	return 0;
 }
