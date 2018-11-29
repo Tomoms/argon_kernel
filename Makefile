@@ -330,7 +330,7 @@ include $(srctree)/scripts/Kbuild.include
 
 # Make variables (CC, etc...)
 
-GCC_OPT		:=	-mcpu=cortex-a15 -fsched-pressure -fira-loop-pressure -ftree-loop-distribution -ftree-loop-ivcanon -ftree-loop-im -fweb -frename-registers -fgcse-las -fgcse-lm -fgcse-sm -funswitch-loops -fgcse-after-reload -fsched-spec-load -fsched-spec-load-dangerous -ftree-partial-pre -ftree-vectorize \
+GCC_OPT		:=	-mcpu=cortex-a15 -fsched-pressure -fira-loop-pressure -ftree-loop-distribution -ftree-loop-ivcanon -ftree-loop-im -fweb -frename-registers -fgcse-las -fgcse-lm -fgcse-sm -funswitch-loops -fgcse-after-reload -fsched-spec-load -fsched-spec-load-dangerous -ftree-partial-pre \
 			-mtune=cortex-a15 \
 			-mvectorize-with-neon-quad \
 			-munaligned-access \
@@ -343,6 +343,8 @@ GCC_OPT		:=	-mcpu=cortex-a15 -fsched-pressure -fira-loop-pressure -ftree-loop-di
 			-DNDEBUG \
 			-fomit-frame-pointer \
 			-fivopts \
+			-fno-inline-functions \
+			-fno-tree-vectorize \
 			-ftree-loop-vectorize \
 			-ftree-slp-vectorize \
 			-fvect-cost-model \
