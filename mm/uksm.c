@@ -69,7 +69,6 @@
 #include <linux/gcd.h>
 #include <linux/freezer.h>
 #include <linux/sradix-tree.h>
-#include <linux/power_supply.h>
 
 #include <asm/tlbflush.h>
 #include "internal.h"
@@ -195,8 +194,6 @@ struct slot_tree_node {
 	struct sradix_tree_node snode;
 	void *stores[SLOT_TREE_NODE_STORE_SIZE];
 };
-
-static struct notifier_block notif;
 
 static struct kmem_cache *slot_tree_node_cachep;
 
@@ -575,28 +572,6 @@ static unsigned int uksm_run = 0;
 
 static DECLARE_WAIT_QUEUE_HEAD(uksm_thread_wait);
 static DEFINE_MUTEX(uksm_thread_mutex);
-
-static int ps_notifier_callback(struct notifier_block *this,
-								unsigned long event, void *data)
-{
-	switch (event) 
-	{
-		case PSY_EVENT_PROP_CHANGED:
-			mutex_lock(&uksm_thread_mutex);
-			if (power_supply_is_system_supplied()) {
-				uksm_run = 1;
-				wake_up_interruptible(&uksm_thread_wait);
-			} else {
-				uksm_run = 0;
-			}
-			mutex_unlock(&uksm_thread_mutex);
-			break;
-		default:
-			break;
-	}
-
-	return 0;
-}
 
 /*
  * List vma_slot_new is for newly created vma_slot waiting to be added by
@@ -5765,11 +5740,6 @@ static int __init uksm_init(void)
 	 */
 	hotplug_memory_notifier(uksm_memory_callback, 100);
 #endif
-	
-	notif.notifier_call = ps_notifier_callback;
-	if (power_supply_reg_notifier(&notif))
-		goto out_free;
-
 	return 0;
 
 out_free:
