@@ -443,7 +443,7 @@ if TCP_CONG_ADVANCED
 
 config TCP_CONG_BIC
 	tristate "Binary Increase Congestion (BIC) control"
-	default m
+	default y
 	---help---
 	BIC-TCP is a sender-side only change that ensures a linear RTT
 	fairness under large windows while offering both scalability and
@@ -465,7 +465,7 @@ config TCP_CONG_CUBIC
 
 config TCP_CONG_WESTWOOD
 	tristate "TCP Westwood+"
-	default m
+	default y
 	---help---
 	TCP Westwood+ is a sender-side only modification of the TCP Reno
 	protocol stack that optimizes the performance of TCP congestion
@@ -477,9 +477,21 @@ config TCP_CONG_WESTWOOD
 	TCP Westwood+ significantly increases fairness wrt TCP Reno in
 	wired networks and throughput over wireless links.
 
+config TCP_CONG_ASCAREX
+	tristate "TCP Ascarex"
+	default y
+	---help---
+	TCP Ascarex is a sender-side only modification of the TCP Westwood+
+	protocol stack that optimizes the performance of TCP congestion
+	control. It is based on end-to-end bandwidth estimation to set
+	congestion window and slow start threshold after a congestion
+	episode. A modification to TCP's congestion control mechanism for use
+	with large congestion windows. A table indicates how much to
+	increase the congestion window by when an ACK is received.
+
 config TCP_CONG_HTCP
         tristate "H-TCP"
-        default m
+        default y
 	---help---
 	H-TCP is a send-side only modifications of the TCP Reno
 	protocol stack that optimizes the performance of TCP
