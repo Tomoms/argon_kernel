@@ -37,10 +37,12 @@
 #include <linux/mm_inline.h>
 #include <trace/events/writeback.h>
 #ifdef CONFIG_DYNAMIC_PAGE_WRITEBACK
-#include <linux/earlysuspend.h>
+#include <linux/state_notifier.h>
 #endif
 
 #include "internal.h"
+
+static struct notifier_block notif;
 
 /*
  * Sleep at most 200ms at a time in balance_dirty_pages().
@@ -1863,11 +1865,11 @@ static struct notifier_block __cpuinitdata ratelimit_nb = {
 	.next		= NULL,
 };
 
-#if defined(CONFIG_DYNAMIC_PAGE_WRITEBACK) && defined(CONFIG_HAS_EARLYSUSPEND)
+#if defined(CONFIG_DYNAMIC_PAGE_WRITEBACK) && defined(CONFIG_STATE_NOTIFIER)
 /*
  * Sets the dirty page writebacks interval for suspended system
  */
-static void dirty_writeback_early_suspend(struct early_suspend *handler)
+static void dirty_writeback_suspend()
 {
 	if (dyn_dirty_writeback_enabled)
 		set_dirty_writeback_status(false);
@@ -1876,19 +1878,31 @@ static void dirty_writeback_early_suspend(struct early_suspend *handler)
 /*
  * Sets the dirty page writebacks interval for active system
  */
-static void dirty_writeback_late_resume(struct early_suspend *handler)
+static void dirty_writeback_resume()
 {
 	if (dyn_dirty_writeback_enabled)
 		set_dirty_writeback_status(true);
 }
 
-/*
- * Struct for the dirty page writeback management during suspend/resume
- */
-static struct early_suspend dirty_writeback_suspend = {
-	.suspend = dirty_writeback_early_suspend,
-	.resume = dirty_writeback_late_resume,
-};
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	if (!dyn_dirty_writeback_enabled)
+		return NOTIFY_OK;
+
+	switch (event) {
+		case STATE_NOTIFIER_ACTIVE:
+			dirty_writeback_resume();
+			break;
+		case STATE_NOTIFIER_SUSPEND:
+			dirty_writeback_suspend();
+			break;
+		default:
+			break;
+	}
+
+	return NOTIFY_OK;
+}
 #endif
 
 /*
@@ -1913,7 +1927,11 @@ void __init page_writeback_init(void)
 {
 #ifdef CONFIG_DYNAMIC_PAGE_WRITEBACK
 	/* Register the dirty page writeback management during suspend/resume */
-	register_early_suspend(&dirty_writeback_suspend);
+	notif.notifier_call = state_notifier_callback;
+	if (state_register_client(&notif)) {
+		pr_err("page-writeback: failed to register state_notifier callback\n");
+		dyn_dirty_writeback_enabled = 0;
+	}
 #endif
 
 	writeback_set_ratelimit();
