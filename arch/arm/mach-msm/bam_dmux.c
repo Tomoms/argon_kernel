@@ -1647,7 +1647,7 @@ static void ul_timeout(struct work_struct *work)
 			queue_delayed_work(system_power_efficient_wq, &ul_timeout_work,
 					msecs_to_jiffies(ul_timeout_delay));
 		} else if (polling_mode) {
-			se DMUX_LOG_KERR("%s: BAM is in polling mode, delay UL power down", __func__);
+			DMUX_LOG_KERR("%s: BAM is in polling mode, delay UL power down", __func__);
 			schedule_delayed_work(&ul_timeout_work,
 					msecs_to_jiffies(ul_timeout_delay));
 		} else {
