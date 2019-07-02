@@ -1,16 +1,23 @@
 /*
- * AutoSMP Hotplug Driver
+ * arch/arm/mach-msm/autosmp.c
  *
- * Automatically hotplug/unplug multiple CPU cores
- * based on cpu load and suspend state.
+ * automatically hotplug/unplug multiple cpu cores
+ * based on cpu load and suspend state
  *
- * Based on the msm_mpdecision code by
+ * based on the msm_mpdecision code by
  * Copyright (c) 2012-2013, Dennis Rassmann <showp1984@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Copyright (C) 2013-2014, Rauf Gungor, http://github.com/mrg666
+ * rewrite to simplify and optimize, Jul. 2013, http://goo.gl/cdGw6x
+ * optimize more, generalize for n cores, Sep. 2013, http://goo.gl/448qBz
+ * generalize for all arch, rename as autosmp, Dec. 2013, http://goo.gl/x5oyhy
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version. For more details, see the GNU
+ * General Public License included with the Linux kernel or available
+ * at www.gnu.org/licenses
  */
 
 #include <linux/moduleparam.h>
@@ -21,14 +28,17 @@
 #include <linux/slab.h>
 #include <linux/hrtimer.h>
 #include <linux/input.h>
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
 
 #define DEBUG 0
 
 #define ASMP_TAG			"AutoSMP:"
-#define ASMP_ENABLED			true
-#define DEFAULT_BOOST_LOCK_DUR		500 * 1000L
+#define ASMP_ENABLED			false
+#define DEFAULT_BOOST_LOCK_DUR		800 * 1000L
 #define DEFAULT_NR_CPUS_BOOSTED		2
-#define DEFAULT_UPDATE_RATE		20
+#define DEFAULT_UPDATE_RATE		80
 #define MIN_INPUT_INTERVAL		150 * 1000L
 #define DEFAULT_MIN_BOOST_FREQ		1497600
 
@@ -39,9 +49,12 @@ struct asmp_cpudata_t {
 static DEFINE_PER_CPU(struct asmp_cpudata_t, asmp_cpudata);
 #endif
 
+static struct notifier_block notif;
 static struct delayed_work asmp_work;
+static struct work_struct suspend_work, resume_work;
 static struct workqueue_struct *asmp_workq;
 static bool enabled_switch = ASMP_ENABLED;
+static DEFINE_PER_CPU(struct asmp_cpudata_t, asmp_cpudata);
 
 static struct asmp_param_struct {
 	unsigned int delay;
@@ -49,20 +62,19 @@ static struct asmp_param_struct {
 	unsigned int min_cpus;
 	unsigned int cpufreq_up;
 	unsigned int cpufreq_down;
-	unsigned int cycle_up;
-	unsigned int cycle_down;
 	unsigned int cpus_boosted;
 	unsigned int min_boost_freq;
 	bool enabled;
 	u64 boost_lock_dur;
+#ifdef CONFIG_STATE_NOTIFIER
+	struct notifier_block notif;
+#endif
 } asmp_param = {
 	.delay = DEFAULT_UPDATE_RATE,
 	.max_cpus = NR_CPUS,
-	.min_cpus = 1,
-	.cpufreq_up = 80,
-	.cpufreq_down = 60,
-	.cycle_up = 1,
-	.cycle_down = 2,
+	.min_cpus = 2,
+	.cpufreq_up = 95,
+	.cpufreq_down = 80,
 	.min_boost_freq = DEFAULT_MIN_BOOST_FREQ,
 	.cpus_boosted = DEFAULT_NR_CPUS_BOOSTED,
 	.enabled = ASMP_ENABLED,
@@ -70,7 +82,6 @@ static struct asmp_param_struct {
 };
 
 static u64 last_boost_time;
-static unsigned int cycle = 0;
 
 /*
  * suspend mode, if set = 1 hotplug will sleep,
@@ -96,8 +107,10 @@ static void max_min_check(void)
 		asmp_param.min_cpus = asmp_param.max_cpus;
 }
 
-static void __cpuinit asmp_work_fn(struct work_struct *work)
-{
+static unsigned int delay0 = 1;
+static unsigned long delay_jif;
+
+static void __cpuinit asmp_work_fn (struct work_struct* work) {
 	unsigned int cpu = 0, slow_cpu = 0;
 	unsigned int rate, cpu0_rate, slow_rate = UINT_MAX, fast_rate;
 	unsigned int max_rate, up_rate, down_rate;
@@ -105,8 +118,10 @@ static void __cpuinit asmp_work_fn(struct work_struct *work)
 	unsigned int min_boost_freq = asmp_param.min_boost_freq;
 	u64 now;
 
-	if (!asmp_param.enabled)
-		return;
+	if (asmp_param.delay != delay0) {
+		delay0 = asmp_param.delay;
+		delay_jif = msecs_to_jiffies(delay0);
+	}
 
 	/* get maximum possible freq for cpu0 and
 	   calculate up/down limits */
@@ -139,12 +154,10 @@ static void __cpuinit asmp_work_fn(struct work_struct *work)
 	now = ktime_to_us(ktime_get());
 	/* hotplug one core if all online cores are over up_rate limit */
 	if (slow_rate > up_rate && fast_rate >= min_boost_freq) {
-		if (nr_cpu_online < asmp_param.max_cpus &&
-				cycle >= asmp_param.cycle_up) {
+		if (nr_cpu_online < asmp_param.max_cpus) {
 			cpu = cpumask_next_zero(0, cpu_online_mask);
 			if (cpu_is_offline(cpu))
 				cpu_up(cpu);
-			cycle = 0;
 #if DEBUG
 			pr_info(ASMP_TAG"CPU [%d] On  | Mask [%d%d%d%d]\n",
 				cpu, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
@@ -158,16 +171,13 @@ static void __cpuinit asmp_work_fn(struct work_struct *work)
 			cpu = cpumask_next_zero(0, cpu_online_mask);
 			if (cpu_is_offline(cpu))
 				cpu_up(cpu);
-			// cycle = 0;
 		}
 	/* unplug slowest core if all online cores are under down_rate limit */
 	} else if (slow_cpu && (fast_rate < down_rate)) {
-		if (nr_cpu_online > asmp_param.min_cpus &&
-				cycle >= asmp_param.cycle_down) {
+		if (nr_cpu_online > asmp_param.min_cpus) {
 
 			if (cpu_online(slow_cpu))
 	 			cpu_down(slow_cpu);
-			cycle = 0;
 #if DEBUG
 			pr_info(ASMP_TAG"CPU [%d] Off | Mask [%d%d%d%d]\n",
 				slow_cpu, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
@@ -176,9 +186,79 @@ static void __cpuinit asmp_work_fn(struct work_struct *work)
 		}
 	} /* else do nothing */
 
-	cycle++;
 	reschedule_hotplug_work();
 }
+
+#ifdef CONFIG_STATE_NOTIFIER
+static void asmp_suspend(struct work_struct *work)
+{
+	unsigned int cpu;
+
+	/* Flush hotplug workqueue */
+	flush_workqueue(asmp_workq);
+	cancel_delayed_work_sync(&asmp_work);
+
+	/* unplug online cpu cores */
+	for_each_possible_cpu(cpu)
+		if (cpu != 0 && cpu_online(cpu))
+			cpu_down(cpu);
+
+//	asmp_param.min_cpus = 1;
+//	asmp_param.max_cpus = 3;
+
+	pr_info(ASMP_TAG"Screen -> Off. Suspended.\n");
+}
+
+static __ref void asmp_resume (struct work_struct* work) {
+	unsigned int cpu;
+
+	/* Fire up all CPUs */
+	for_each_possible_cpu(cpu)
+		if (cpu_is_offline(cpu))
+			cpu_up(cpu);
+
+//	asmp_param.min_cpus = 2;
+//	asmp_param.max_cpus = 4;
+
+	last_boost_time = ktime_to_us(ktime_get());
+
+	/* Resume hotplug workqueue */
+	INIT_DELAYED_WORK(&asmp_work, asmp_work_fn);
+	reschedule_hotplug_work();
+	pr_info(ASMP_TAG"Screen -> On. Resumed.\n");
+}
+
+static void asmp_power_suspend(void)
+{
+	queue_work(system_wq, &suspend_work);
+}
+
+static void asmp_power_resume(void)
+{
+	queue_work(system_wq, &resume_work);
+}
+
+
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	if (!asmp_param.enabled || !hotplug_suspend)
+                return NOTIFY_OK;
+
+	switch (event) {
+		case STATE_NOTIFIER_ACTIVE:
+			asmp_power_resume();
+			break;
+		case STATE_NOTIFIER_SUSPEND:
+			asmp_power_suspend();
+			break;
+		default:
+			break;
+	}
+
+	return NOTIFY_OK;
+}
+#endif
 
 static void autosmp_input_event(struct input_handle *handle, unsigned int type,
 				unsigned int code, int value)
@@ -284,6 +364,15 @@ static int hotplug_start(void)
 		goto err_wq;
 	}
 
+#ifdef CONFIG_STATE_NOTIFIER
+	asmp_param.notif.notifier_call = state_notifier_callback;
+	if (state_register_client(&asmp_param.notif)) {
+		pr_err("%s: Failed to register State notifier callback\n",
+			ASMP_TAG);
+		goto err_notif;
+	}
+#endif
+
 	ret = input_register_handler(&autosmp_input_handler);
 	if (ret) {
 		pr_err("%s: Failed to register input handler: %d\n",
@@ -297,6 +386,11 @@ static int hotplug_start(void)
 	return ret;
 
 err:
+#ifdef CONFIG_STATE_NOTIFIER
+	state_unregister_client(&asmp_param.notif);
+err_notif:
+	asmp_param.notif.notifier_call = NULL;
+#endif
 	destroy_workqueue(asmp_workq);
 err_wq:
 	asmp_param.enabled = false;
@@ -308,6 +402,10 @@ static void __ref hotplug_stop(void)
 	int cpu;
 
 	input_unregister_handler(&autosmp_input_handler);
+#ifdef CONFIG_STATE_NOTIFIER
+	state_unregister_client(&asmp_param.notif);
+	asmp_param.notif.notifier_call = NULL;
+#endif
 	flush_workqueue(asmp_workq);
 	cancel_delayed_work_sync(&asmp_work);
 	destroy_workqueue(asmp_workq);
@@ -356,21 +454,19 @@ __ATTR(_name, 0444, show_##_name, NULL)
 static struct global_attr _name =					\
 __ATTR(_name, 0644, show_##_name, store_##_name)
 
-struct kobject *asmp_kobject;
+struct kobject* asmp_kobject;
 
 #define show_one(file_name, object)					\
 static ssize_t show_##file_name						\
-(struct kobject *kobj, struct attribute *attr, char *buf)		\
+(struct kobject *kobj, struct attribute *attr, char *buf)	\
 {									\
-	return sprintf(buf, "%u\n", asmp_param.object);			\
+	return sprintf(buf, "%u\n", asmp_param.object);	\
 }
 show_one(delay, delay);
 show_one(min_cpus, min_cpus);
 show_one(max_cpus, max_cpus);
 show_one(cpufreq_up, cpufreq_up);
 show_one(cpufreq_down, cpufreq_down);
-show_one(cycle_up, cycle_up);
-show_one(cycle_down, cycle_down);
 
 #define store_one(file_name, object)					\
 static ssize_t store_##file_name					\
@@ -393,8 +489,6 @@ store_one(min_cpus, min_cpus);
 store_one(max_cpus, max_cpus);
 store_one(cpufreq_up, cpufreq_up);
 store_one(cpufreq_down, cpufreq_down);
-store_one(cycle_up, cycle_up);
-store_one(cycle_down, cycle_down);
 
 static ssize_t show_boost_lock_duration(struct device *dev,
 				        struct device_attribute
@@ -479,8 +573,6 @@ static struct attribute *asmp_attributes[] = {
 	&max_cpus.attr,
 	&cpufreq_up.attr,
 	&cpufreq_down.attr,
-	&cycle_up.attr,
-	&cycle_down.attr,
 	&dev_attr_boost_lock_duration.attr,
 	&dev_attr_cpus_boosted.attr,
 	&dev_attr_min_boost_freq.attr,
@@ -507,7 +599,7 @@ static ssize_t show_times_hotplugged(struct kobject *a,
 }
 define_one_global_ro(times_hotplugged);
 
-static struct attribute *asmp_stats_attributes[] = {
+static struct attribute* asmp_stats_attributes[] = {
 	&times_hotplugged.attr,
 	NULL
 };
@@ -522,12 +614,29 @@ static struct attribute_group asmp_stats_attr_group = {
 static int __init asmp_init(void)
 {
 	int ret = 0;
+	unsigned int cpu;
+	int rc;
 
 	asmp_param.max_cpus = NR_CPUS;
 #if DEBUG
 	for_each_possible_cpu(cpu)
 		per_cpu(asmp_cpudata, cpu).times_hotplugged = 0;
 #endif
+
+	asmp_workq = alloc_workqueue("asmp", WQ_HIGHPRI, 0);
+	if (!asmp_workq)
+		return -ENOMEM;
+	INIT_DELAYED_WORK(&asmp_work, asmp_work_fn);
+	if (asmp_param.enabled)
+		queue_delayed_work(asmp_workq, &asmp_work,
+				   msecs_to_jiffies(10000));
+
+	INIT_WORK(&suspend_work, asmp_suspend);
+	INIT_WORK(&resume_work, asmp_resume);
+
+	notif.notifier_call = state_notifier_callback;
+	if (state_register_client(&notif))
+		return -EINVAL;
 
 	asmp_kobject = kobject_create_and_add("autosmp", kernel_kobj);
 	if (asmp_kobject) {
