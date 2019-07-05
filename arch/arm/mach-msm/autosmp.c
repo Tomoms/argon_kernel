@@ -54,7 +54,6 @@ static struct delayed_work asmp_work;
 static struct work_struct suspend_work, resume_work;
 static struct workqueue_struct *asmp_workq;
 static bool enabled_switch = ASMP_ENABLED;
-static DEFINE_PER_CPU(struct asmp_cpudata_t, asmp_cpudata);
 
 static struct asmp_param_struct {
 	unsigned int delay;
@@ -614,8 +613,6 @@ static struct attribute_group asmp_stats_attr_group = {
 static int __init asmp_init(void)
 {
 	int ret = 0;
-	unsigned int cpu;
-	int rc;
 
 	asmp_param.max_cpus = NR_CPUS;
 #if DEBUG
