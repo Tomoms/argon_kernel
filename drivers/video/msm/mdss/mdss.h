@@ -15,7 +15,6 @@
 #define MDSS_H
 
 #include <linux/msm_ion.h>
-#include <linux/earlysuspend.h>
 #include <linux/msm_mdp.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
@@ -206,7 +205,6 @@ struct mdss_data_type {
 	int iommu_attached;
 	struct mdss_iommu_map_type *iommu_map;
 
-	struct early_suspend early_suspend;
 	struct mdss_debug_inf debug_inf;
 	bool mixer_switched;
 	struct mdss_panel_cfg pan_cfg;
