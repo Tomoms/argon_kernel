@@ -202,7 +202,6 @@ static int dwc3_otg_start_host(struct usb_otg *otg, int on)
 	struct dwc3_otg *dotg = container_of(otg, struct dwc3_otg, otg);
 	struct dwc3_ext_xceiv *ext_xceiv = dotg->ext_xceiv;
 	struct dwc3 *dwc = dotg->dwc;
-	struct usb_phy *phy = dotg->otg.phy;
 	
 	int ret = 0;
 
