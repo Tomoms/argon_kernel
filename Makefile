@@ -243,10 +243,12 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
+GRAPHITE = -fgraphite -fgraphite-identity -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block -floop-flatten
+
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer $(GRAPHITE)
+HOSTCXXFLAGS = -O2 $(GRAPHITE)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -326,10 +328,13 @@ MAKEFLAGS += --include-dir=$(srctree)
 $(srctree)/scripts/Kbuild.include: ;
 include $(srctree)/scripts/Kbuild.include
 
+LD_FLAGS = -O3 --sort-common --strip-debug
+NODEBUG = -g0 -DNDEBUG
+
 # Make variables (CC, etc...)
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
+LD		= $(CROSS_COMPILE)ld.gold $(LD_FLAGS)
 REAL_CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
@@ -373,25 +378,32 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
-		   			-Wno-maybe-uninitialized \
-			-Wno-incompatible-pointer-types \
-			-Wno-format-security \
-			-Wno-discarded-array-qualifiers \
-			-Wno-memset-transposed-args \
-			-Wno-bool-compare \
-			-Wno-logical-not-parentheses \
-			-Wno-switch-bool \
-			-Wno-array-bounds \
-			-Wno-misleading-indentation \
-			-Wno-format-truncation \
-			-Wno-bool-operation \
-			-Wno-duplicate-decl-specifier \
-			-Wno-memset-elt-size \
-			-Wno-parentheses \
-			-Wno-format-overflow \
-			-Wno-int-in-bool-context \
-			-Wno-unused-const-variable \
-		-Wno-switch-unreachable 
+		   -Wno-maybe-uninitialized \
+		   -Wno-incompatible-pointer-types \
+		   -Wno-format-security \
+		   -Wno-discarded-array-qualifiers \
+		   -Wno-memset-transposed-args \
+		   -Wno-bool-compare \
+		   -Wno-logical-not-parentheses \
+		   -Wno-switch-bool \
+		   -Wno-array-bounds \
+		   -Wno-misleading-indentation \
+		   -Wno-format-truncation \
+		   -Wno-bool-operation \
+		   -Wno-duplicate-decl-specifier \
+		   -Wno-memset-elt-size \
+		   -Wno-parentheses \
+		   -Wno-format-overflow \
+		   -Wno-int-in-bool-context \
+		   -Wno-unused-const-variable \
+		   -Wno-switch-unreachable \
+		   -fmodulo-sched -fmodulo-sched-allow-regmoves \
+		   -munaligned-access \
+		   -fsched-pressure \
+  -fsingle-precision-constant -mvectorize-with-neon-quad \
+		   -fsched-spec-load \
+		   $(GRAPHITE) \
+		   $(NODEBUG)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
