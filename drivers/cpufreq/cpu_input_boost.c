@@ -169,12 +169,11 @@ static int do_cpu_boost(struct notifier_block *nb,
 	struct cpufreq_policy *policy = data;
 	struct boost_policy *b = boost_policy_g;
 	struct ib_pcpu *pcpu = per_cpu_ptr(b->ib.boost_info, policy->cpu);
-	unsigned int user_min_freq = policy->min;
 
 	if (val != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
-	if (!is_driver_enabled(b))
+	if (!is_driver_enabled(b) && policy->min == policy->cpuinfo.min_freq)
 		return NOTIFY_OK;
 
 	if (is_fb_boost_active(b)) {
@@ -199,7 +198,7 @@ static int do_cpu_boost(struct notifier_block *nb,
 		policy->min = min(policy->max,
 				b->ib.freq[policy->cpu ? 1 : 0]);
 	else
-		policy->min = user_min_freq;
+		policy->min = policy->cpuinfo.min_freq;
 
 	return NOTIFY_OK;
 }
