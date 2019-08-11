@@ -70,7 +70,6 @@
 #include <linux/pid_namespace.h>
 #include <linux/security.h>
 #include <linux/spinlock.h>
-#include <linux/uidgid.h>
 
 #include "binder.h"
 #include "binder_alloc.h"
@@ -672,7 +671,7 @@ struct binder_transaction {
  * structures associated with the given proc.
  */
 #define binder_proc_lock(proc) _binder_proc_lock(proc, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_proc_lock(struct binder_proc *proc, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -687,7 +686,7 @@ _binder_proc_lock(struct binder_proc *proc, int line)
  * Release lock acquired via binder_proc_lock()
  */
 #define binder_proc_unlock(_proc) _binder_proc_unlock(_proc, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_proc_unlock(struct binder_proc *proc, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -702,7 +701,7 @@ _binder_proc_unlock(struct binder_proc *proc, int line)
  * Acquires proc->inner_lock. Used to protect todo lists
  */
 #define binder_inner_proc_lock(proc) _binder_inner_proc_lock(proc, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_inner_proc_lock(struct binder_proc *proc, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -717,7 +716,7 @@ _binder_inner_proc_lock(struct binder_proc *proc, int line)
  * Release lock acquired via binder_inner_proc_lock()
  */
 #define binder_inner_proc_unlock(proc) _binder_inner_proc_unlock(proc, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_inner_proc_unlock(struct binder_proc *proc, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -732,7 +731,7 @@ _binder_inner_proc_unlock(struct binder_proc *proc, int line)
  * Acquires node->lock. Used to protect binder_node fields
  */
 #define binder_node_lock(node) _binder_node_lock(node, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_node_lock(struct binder_node *node, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -747,7 +746,7 @@ _binder_node_lock(struct binder_node *node, int line)
  * Release lock acquired via binder_node_lock()
  */
 #define binder_node_unlock(node) _binder_node_unlock(node, __LINE__)
-static void __attribute__((__unused__))
+static void
 _binder_node_unlock(struct binder_node *node, int line)
 {
 	binder_debug(BINDER_DEBUG_SPINLOCKS,
@@ -5140,7 +5139,6 @@ static int binder_release(struct inode *nodp, struct file *filp)
 static int binder_node_release(struct binder_node *node, int refs)
 {
 	struct binder_ref *ref;
-	struct hlist_node *pos;
 	int death = 0;
 	struct binder_proc *proc = node->proc;
 
@@ -5170,7 +5168,7 @@ static int binder_node_release(struct binder_node *node, int refs)
 	hlist_add_head(&node->dead_node, &binder_dead_nodes);
 	spin_unlock(&binder_dead_nodes_lock);
 
-	hlist_for_each_entry(ref, pos, &node->refs, node_entry) {
+	hlist_for_each_entry(ref, &node->refs, node_entry) {
 		refs++;
 		/*
 		 * Need the node lock to synchronize
@@ -5474,11 +5472,10 @@ static void print_binder_node_nilocked(struct seq_file *m,
 {
 	struct binder_ref *ref;
 	struct binder_work *w;
-	struct hlist_node *pos;
 	int count;
 
 	count = 0;
-	hlist_for_each_entry(ref, pos, &node->refs, node_entry)
+	hlist_for_each_entry(ref, &node->refs, node_entry)
 		count++;
 
 	seq_printf(m, "  node %d: u%016llx c%016llx pri %d:%d hs %d hw %d ls %d lw %d is %d iw %d tr %d",
@@ -5489,7 +5486,7 @@ static void print_binder_node_nilocked(struct seq_file *m,
 		   node->internal_strong_refs, count, node->tmp_refs);
 	if (count) {
 		seq_puts(m, " proc");
-		hlist_for_each_entry(ref, pos, &node->refs, node_entry)
+		hlist_for_each_entry(ref, &node->refs, node_entry)
 			seq_printf(m, " %d", ref->proc->pid);
 	}
 	seq_puts(m, "\n");
@@ -5742,14 +5739,13 @@ static int binder_state_show(struct seq_file *m, void *unused)
 	struct binder_proc *proc;
 	struct binder_node *node;
 	struct binder_node *last_node = NULL;
-	struct hlist_node *pos;
 
 	seq_puts(m, "binder state:\n");
 
 	spin_lock(&binder_dead_nodes_lock);
 	if (!hlist_empty(&binder_dead_nodes))
 		seq_puts(m, "dead nodes:\n");
-	hlist_for_each_entry(node, pos, &binder_dead_nodes, dead_node) {
+	hlist_for_each_entry(node, &binder_dead_nodes, dead_node) {
 		/*
 		 * take a temporary reference on the node so it
 		 * survives and isn't removed from the list
@@ -5770,7 +5766,7 @@ static int binder_state_show(struct seq_file *m, void *unused)
 		binder_put_node(last_node);
 
 	mutex_lock(&binder_procs_lock);
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node)
+	hlist_for_each_entry(proc, &binder_procs, proc_node)
 		print_binder_proc(m, proc, 1);
 	mutex_unlock(&binder_procs_lock);
 
@@ -5780,14 +5776,13 @@ static int binder_state_show(struct seq_file *m, void *unused)
 static int binder_stats_show(struct seq_file *m, void *unused)
 {
 	struct binder_proc *proc;
-	struct hlist_node *pos;
 
 	seq_puts(m, "binder stats:\n");
 
 	print_binder_stats(m, "", &binder_stats);
 
 	mutex_lock(&binder_procs_lock);
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node)
+	hlist_for_each_entry(proc, &binder_procs, proc_node)
 		print_binder_proc_stats(m, proc);
 	mutex_unlock(&binder_procs_lock);
 
@@ -5797,11 +5792,10 @@ static int binder_stats_show(struct seq_file *m, void *unused)
 static int binder_transactions_show(struct seq_file *m, void *unused)
 {
 	struct binder_proc *proc;
-	struct hlist_node *pos;
 
 	seq_puts(m, "binder transactions:\n");
 	mutex_lock(&binder_procs_lock);
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node)
+	hlist_for_each_entry(proc, &binder_procs, proc_node)
 		print_binder_proc(m, proc, 0);
 	mutex_unlock(&binder_procs_lock);
 
@@ -5811,11 +5805,10 @@ static int binder_transactions_show(struct seq_file *m, void *unused)
 static int binder_proc_show(struct seq_file *m, void *unused)
 {
 	struct binder_proc *itr;
-	struct hlist_node *pos;
 	int pid = (unsigned long)m->private;
 
 	mutex_lock(&binder_procs_lock);
-	hlist_for_each_entry(itr, pos, &binder_procs, proc_node) {
+	hlist_for_each_entry(itr, &binder_procs, proc_node) {
 		if (itr->pid == pid) {
 			seq_puts(m, "binder proc state:\n");
 			print_binder_proc(m, itr, 1);
@@ -5922,7 +5915,7 @@ static int __init binder_init(void)
 	int ret;
 	char *device_name, *device_names;
 	struct binder_device *device;
-	struct hlist_node *node, *tmp;
+	struct hlist_node *tmp;
 
 	binder_alloc_shrinker_init();
 
@@ -5985,7 +5978,7 @@ static int __init binder_init(void)
 	return ret;
 
 err_init_binder_device_failed:
-	hlist_for_each_entry_safe(device, node, tmp, &binder_devices, hlist) {
+	hlist_for_each_entry_safe(device, tmp, &binder_devices, hlist) {
 		misc_deregister(&device->miscdev);
 		hlist_del(&device->hlist);
 		kfree(device);
