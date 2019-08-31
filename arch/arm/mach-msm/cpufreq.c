@@ -226,6 +226,7 @@ static int msm_cpufreq_init(struct cpufreq_policy *policy)
 		return ret;
 	pr_debug("cpufreq: cpu%d init at %d switching to %d\n",
 			policy->cpu, cur_freq, table[index].frequency);
+	pr_debug("MSM CPUFREQ FREQUENCY LIMITS: policy->max now is %d\n", policy->max);
 	policy->cur = policy->max;
 	cpufreq_frequency_table_get_attr(table, policy->cpu);
 
