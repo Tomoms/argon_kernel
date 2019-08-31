@@ -29,7 +29,7 @@
 #include <linux/qpnp/qpnp-adc.h>
 #include <linux/slab.h>
 
-#define DEFAULT_SAMPLING_MS 3000
+#define DEFAULT_SAMPLING_MS 8000
 
 /* Sysfs attr group must be manually updated in order to change this */
 #define NR_THERMAL_ZONES 8
